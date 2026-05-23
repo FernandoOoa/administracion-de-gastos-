@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { useApartados } from '../hooks/useApartados';
 import { useRegistro } from '../hooks/useRegistro';
 import { MdInput, MdOutput, MdSwapHoriz, MdCloudUpload } from 'react-icons/md';
+import { useAuth } from '../contexts/AuthContext';
+import { useEffect } from 'react';
 
 const RegistroRapido = () => {
   const { apartados, loading: loadingApartados } = useApartados();
   const { registrarTransaccion, loading: saving, error } = useRegistro();
+  const { userRole } = useAuth();
 
   const [tipo, setTipo] = useState('Entrada');
   const [monto, setMonto] = useState('');
@@ -14,6 +17,12 @@ const RegistroRapido = () => {
   const [apartadoDestinoId, setApartadoDestinoId] = useState('');
   const [file, setFile] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    if (userRole === 'BASE') {
+      setTipo('Entrada');
+    }
+  }, [userRole]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,7 +70,8 @@ const RegistroRapido = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Selector de Tipo (Diseño grande para una mano) */}
-        <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-1.5 rounded-2xl">
+        {userRole !== 'BASE' && (
+          <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-1.5 rounded-2xl">
           <button
             type="button"
             onClick={() => setTipo('Entrada')}
@@ -87,6 +97,7 @@ const RegistroRapido = () => {
             <span className="text-xs font-medium">Transfer.</span>
           </button>
         </div>
+        )}
 
         {/* Monto - Teclado Numérico */}
         <div>

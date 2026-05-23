@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { MdCheckCircle, MdSend } from 'react-icons/md';
 
 const Custodia = () => {
-  const { porEntregar, esperandoConfirmacion, loading, entregarATesoreria, confirmarRecepcion } = useCustodia();
+  const { porEntregar, esperandoConfirmacion, misPeticiones, loading, entregarATesoreria, confirmarRecepcion } = useCustodia();
   const { userRole } = useAuth();
 
   const isTesorera = userRole === 'TESORERA' || userRole === 'ADMIN';
@@ -102,6 +102,39 @@ const Custodia = () => {
                     <MdCheckCircle size={18} />
                     <span>Confirmar Recepción</span>
                   </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Sección 3: Mis entregas en proceso (Solo BASE y GESTOR) */}
+      {!isTesorera && (
+        <section>
+          <h2 className="text-lg font-semibold text-purple-400 mb-4 border-b border-slate-700 pb-2">
+            Mis entregas en proceso (Esperando a Tesorería)
+          </h2>
+          {misPeticiones.length === 0 ? (
+            <p className="text-slate-400 text-sm">No tienes entregas pendientes de confirmación.</p>
+          ) : (
+            <div className="space-y-4">
+              {misPeticiones.map(t => (
+                <div key={t.id} className="bg-slate-800/50 border border-purple-500/20 rounded-xl p-4 shadow-lg opacity-80">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <span className="text-xs font-semibold px-2 py-1 bg-purple-500/20 text-purple-300 rounded-md">
+                        En espera...
+                      </span>
+                      <p className="text-slate-200 mt-2">{t.concepto}</p>
+                    </div>
+                    <span className="text-xl font-bold text-white">
+                      {formatCurrency(t.monto)}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {formatDate(t.fecha)}
+                  </div>
                 </div>
               ))}
             </div>

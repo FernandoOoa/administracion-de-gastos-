@@ -7,6 +7,7 @@ import { useNotificaciones } from './useNotificaciones';
 export const useCustodia = () => {
   const [porEntregar, setPorEntregar] = useState([]);
   const [esperandoConfirmacion, setEsperandoConfirmacion] = useState([]);
+  const [misPeticiones, setMisPeticiones] = useState([]);
   const [loading, setLoading] = useState(true);
   const { currentUser, userRole } = useAuth();
   const { enviarNotificacion } = useNotificaciones();
@@ -31,6 +32,7 @@ export const useCustodia = () => {
     });
 
     let unsubEsperando = () => {};
+    let unsubMisPeticiones = () => {};
 
     // Consulta 2: Validación de tesorería
     if (userRole === 'TESORERA' || userRole === 'ADMIN') {
@@ -44,6 +46,19 @@ export const useCustodia = () => {
         data.sort((a, b) => b.fecha?.seconds - a.fecha?.seconds);
         setEsperandoConfirmacion(data);
       });
+    } else {
+      // Consulta 3: Mis peticiones en espera (Para BASE y GESTOR)
+      const qMisPeticiones = query(
+        transaccionesRef,
+        where('estado_custodia', '==', 'ESPERANDO_CONFIRMACION'),
+        where('id_usuario_registro', '==', currentUser.uid)
+      );
+
+      unsubMisPeticiones = onSnapshot(qMisPeticiones, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        data.sort((a, b) => b.fecha?.seconds - a.fecha?.seconds);
+        setMisPeticiones(data);
+      });
     }
 
     setLoading(false);
@@ -51,6 +66,7 @@ export const useCustodia = () => {
     return () => {
       unsubMisCustodias();
       unsubEsperando();
+      unsubMisPeticiones();
     };
   }, [currentUser, userRole]);
 
@@ -98,5 +114,5 @@ export const useCustodia = () => {
     }
   };
 
-  return { porEntregar, esperandoConfirmacion, loading, entregarATesoreria, confirmarRecepcion };
+  return { porEntregar, esperandoConfirmacion, misPeticiones, loading, entregarATesoreria, confirmarRecepcion };
 };

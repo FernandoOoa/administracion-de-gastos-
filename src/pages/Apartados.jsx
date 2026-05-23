@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApartados } from '../hooks/useApartados';
 import ApartadoModal from '../components/ApartadoModal';
@@ -10,6 +11,10 @@ const Apartados = () => {
   const { apartados, loading, addApartado, updateApartado, deleteApartado, combinarApartados } = useApartados();
   const [isModalOpen, setIsModalOpen] = useState(false);
   
+  if (userRole === 'BASE') {
+    return <Navigate to="/registro" />;
+  }
+
   // States para Edit
   const [editData, setEditData] = useState(null);
   

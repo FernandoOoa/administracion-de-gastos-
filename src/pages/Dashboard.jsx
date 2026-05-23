@@ -3,12 +3,19 @@ import { useApartados } from '../hooks/useApartados';
 import { useDashboard } from '../hooks/useDashboard';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { MdTrendingUp, MdTrendingDown, MdSwapHoriz } from 'react-icons/md';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
 const Dashboard = () => {
   const { apartados, loading: loadingApartados } = useApartados();
   const { ultimasTransacciones, loadingTransacciones } = useDashboard();
+  const { userRole } = useAuth();
+
+  if (userRole === 'BASE') {
+    return <Navigate to="/registro" />;
+  }
 
   const balanceTotal = apartados.reduce((sum, apartado) => sum + (Number(apartado.saldo_actual) || 0), 0);
 

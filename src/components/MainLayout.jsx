@@ -3,18 +3,22 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { MdDashboard, MdAddCircleOutline, MdSecurity, MdSavings, MdNotifications, MdPerson } from 'react-icons/md';
 import NotificationsPanel from './NotificationsPanel';
 import { useNotificaciones } from '../hooks/useNotificaciones';
+import { useAuth } from '../contexts/AuthContext';
 
 const MainLayout = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const { unreadCount } = useNotificaciones();
+  const { userRole } = useAuth();
 
-  const navItems = [
-    { to: "/", icon: <MdDashboard size={24} />, label: "Inicio" },
-    { to: "/registro", icon: <MdAddCircleOutline size={24} />, label: "Registro" },
-    { to: "/custodia", icon: <MdSecurity size={24} />, label: "Custodia" },
-    { to: "/apartados", icon: <MdSavings size={24} />, label: "Apartados" },
-    { to: "/perfil", icon: <MdPerson size={24} />, label: "Perfil" }
+  const allNavItems = [
+    { to: "/", icon: <MdDashboard size={24} />, label: "Inicio", hideForBase: true },
+    { to: "/registro", icon: <MdAddCircleOutline size={24} />, label: "Registro", hideForBase: false },
+    { to: "/custodia", icon: <MdSecurity size={24} />, label: "Custodia", hideForBase: false },
+    { to: "/apartados", icon: <MdSavings size={24} />, label: "Apartados", hideForBase: true },
+    { to: "/perfil", icon: <MdPerson size={24} />, label: "Perfil", hideForBase: false }
   ];
+
+  const navItems = allNavItems.filter(item => !(userRole === 'BASE' && item.hideForBase));
 
   return (
     <div className="layout-container relative pt-16">

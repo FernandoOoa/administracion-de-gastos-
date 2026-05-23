@@ -92,6 +92,27 @@ export const useRegistro = () => {
 
         const newTransaccionRef = doc(collection(db, 'transacciones'));
         transaction.set(newTransaccionRef, transaccionData);
+
+        // Notificaciones automáticas si el usuario es BASE
+        if (userRole === 'BASE') {
+          const notifTesoRef = doc(collection(db, 'notificaciones'));
+          transaction.set(notifTesoRef, {
+            id_usuario_destino: 'ROLE_TESORERA',
+            mensaje: `El usuario ${currentUser.displayName || 'Gestor'} ha registrado una ${tipo} por $${parsedMonto}.`,
+            tipo: 'INFO',
+            leida: false,
+            fecha: new Date()
+          });
+
+          const notifAdminRef = doc(collection(db, 'notificaciones'));
+          transaction.set(notifAdminRef, {
+            id_usuario_destino: 'ROLE_ADMIN',
+            mensaje: `El usuario ${currentUser.displayName || 'Gestor'} ha registrado una ${tipo} por $${parsedMonto}.`,
+            tipo: 'INFO',
+            leida: false,
+            fecha: new Date()
+          });
+        }
       });
 
       setLoading(false);

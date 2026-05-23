@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotificaciones } from './useNotificaciones';
 
 export const useCustodia = () => {
   const [porEntregar, setPorEntregar] = useState([]);
   const [esperandoConfirmacion, setEsperandoConfirmacion] = useState([]);
   const [loading, setLoading] = useState(true);
   const { currentUser, userRole } = useAuth();
+  const { enviarNotificacion } = useNotificaciones();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -24,14 +26,13 @@ export const useCustodia = () => {
 
     const unsubMisCustodias = onSnapshot(qMisCustodias, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Ordenamiento en cliente para evitar necesidad de índices compuestos
       data.sort((a, b) => b.fecha?.seconds - a.fecha?.seconds);
       setPorEntregar(data);
     });
 
     let unsubEsperando = () => {};
 
-    // Consulta 2: Validación de tesorería (Solo para TESORERA o ADMIN)
+    // Consulta 2: Validación de tesorería
     if (userRole === 'TESORERA' || userRole === 'ADMIN') {
       const qEsperando = query(
         transaccionesRef,
@@ -56,7 +57,17 @@ export const useCustodia = () => {
   const entregarATesoreria = async (id) => {
     try {
       const docRef = doc(db, 'transacciones', id);
+      const transDoc = await getDoc(docRef);
+      const data = transDoc.data();
+
       await updateDoc(docRef, { estado_custodia: 'ESPERANDO_CONFIRMACION' });
+
+      await enviarNotificacion(
+        'ROLE_TESORERA',
+        `El usuario ${currentUser.displayName || 'Gestor'} quiere entregarte $${data.monto || 0}.`,
+        'ACCION'
+      );
+
       return true;
     } catch (error) {
       console.error("Error al entregar: ", error);
@@ -67,8 +78,19 @@ export const useCustodia = () => {
   const confirmarRecepcion = async (id) => {
     try {
       const docRef = doc(db, 'transacciones', id);
-      // Conservamos custodio_actual por seguridad y auditoría
+      const transDoc = await getDoc(docRef);
+      const data = transDoc.data();
+
       await updateDoc(docRef, { estado_custodia: 'EN_TESORERIA' });
+
+      if (data.id_usuario_registro) {
+        await enviarNotificacion(
+          data.id_usuario_registro,
+          `La Tesorería ha confirmado de recibido tu entrega de $${data.monto || 0}.`,
+          'INFO'
+        );
+      }
+
       return true;
     } catch (error) {
       console.error("Error al confirmar: ", error);

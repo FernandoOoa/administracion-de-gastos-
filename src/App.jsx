@@ -10,6 +10,8 @@ import Dashboard from './pages/Dashboard';
 import RegistroRapido from './pages/RegistroRapido';
 import Custodia from './pages/Custodia';
 import Apartados from './pages/Apartados';
+import Perfil from './pages/Perfil';
+import UsuariosAdmin from './pages/UsuariosAdmin';
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
             <Route path="/registro" element={<RegistroRapido />} />
             <Route path="/custodia" element={<Custodia />} />
             <Route path="/apartados" element={<Apartados />} />
+            <Route path="/perfil" element={<Perfil />} />
+            <Route path="/usuarios" element={<UsuariosAdmin />} />
           </Route>
         </Routes>
       </Router>

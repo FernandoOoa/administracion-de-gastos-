@@ -3,10 +3,14 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { MdDashboard, MdAddCircleOutline, MdSecurity, MdSavings, MdNotifications, MdPerson } from 'react-icons/md';
 import NotificationsPanel from './NotificationsPanel';
 import { useNotificaciones } from '../hooks/useNotificaciones';
+import { useFCM } from '../hooks/useFCM';
 
 const MainLayout = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const { unreadCount } = useNotificaciones();
+  
+  // Inicializar FCM para permisos y tokens
+  useFCM();
 
   const navItems = [
     { to: "/", icon: <MdDashboard size={24} />, label: "Inicio" },

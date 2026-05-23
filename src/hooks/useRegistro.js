@@ -1,0 +1,108 @@
+import { useState } from 'react';
+import { db, storage } from '../firebase';
+import { collection, doc, runTransaction } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useAuth } from '../contexts/AuthContext';
+
+export const useRegistro = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { currentUser, userRole } = useAuth();
+
+  const registrarTransaccion = async ({
+    tipo,
+    monto,
+    concepto,
+    apartadoId,
+    apartadoDestinoId,
+    comprobanteFile
+  }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const parsedMonto = Number(monto);
+      if (isNaN(parsedMonto) || parsedMonto <= 0) {
+        throw new Error("El monto debe ser un número válido mayor a 0.");
+      }
+
+      let url_comprobante = null;
+
+      if (tipo === 'Salida' && comprobanteFile) {
+        const fileExt = comprobanteFile.name.split('.').pop();
+        const fileName = `${Date.now()}_${currentUser.uid}.${fileExt}`;
+        const storageRef = ref(storage, `comprobantes/${fileName}`);
+        const snapshot = await uploadBytes(storageRef, comprobanteFile);
+        url_comprobante = await getDownloadURL(snapshot.ref);
+      }
+
+      const transaccionData = {
+        tipo,
+        monto: parsedMonto,
+        concepto,
+        apartado_id: apartadoId,
+        fecha: new Date(),
+        id_usuario_registro: currentUser.uid,
+      };
+
+      if (tipo === 'Salida') {
+        transaccionData.url_comprobante = url_comprobante;
+      }
+      
+      if (tipo === 'Transferencia' && apartadoDestinoId) {
+        transaccionData.apartado_destino_id = apartadoDestinoId;
+      }
+
+      if (userRole === 'TESORERA') {
+        transaccionData.estado_custodia = 'EN_TESORERIA';
+      } else {
+        transaccionData.estado_custodia = 'POR_ENTREGAR';
+        transaccionData.custodio_actual = currentUser.uid;
+      }
+
+      await runTransaction(db, async (transaction) => {
+        const apartadoRef = doc(db, 'apartados', apartadoId);
+        const apartadoDoc = await transaction.get(apartadoRef);
+        
+        if (!apartadoDoc.exists()) {
+          throw new Error("El apartado seleccionado no existe.");
+        }
+
+        let apartadoDestinoDoc = null;
+        let apartadoDestinoRef = null;
+        if (tipo === 'Transferencia') {
+          if (!apartadoDestinoId) throw new Error("Debe seleccionar un apartado destino.");
+          apartadoDestinoRef = doc(db, 'apartados', apartadoDestinoId);
+          apartadoDestinoDoc = await transaction.get(apartadoDestinoRef);
+          if (!apartadoDestinoDoc.exists()) {
+            throw new Error("El apartado destino no existe.");
+          }
+        }
+
+        const nuevoSaldo = apartadoDoc.data().saldo_actual || 0;
+
+        if (tipo === 'Entrada') {
+          transaction.update(apartadoRef, { saldo_actual: nuevoSaldo + parsedMonto });
+        } else if (tipo === 'Salida') {
+          transaction.update(apartadoRef, { saldo_actual: nuevoSaldo - parsedMonto });
+        } else if (tipo === 'Transferencia') {
+          const saldoDestino = apartadoDestinoDoc.data().saldo_actual || 0;
+          transaction.update(apartadoRef, { saldo_actual: nuevoSaldo - parsedMonto });
+          transaction.update(apartadoDestinoRef, { saldo_actual: saldoDestino + parsedMonto });
+        }
+
+        const newTransaccionRef = doc(collection(db, 'transacciones'));
+        transaction.set(newTransaccionRef, transaccionData);
+      });
+
+      setLoading(false);
+      return { success: true };
+    } catch (err) {
+      console.error("Error al registrar transacción:", err);
+      setError(err.message || "Hubo un error al registrar la operación.");
+      setLoading(false);
+      return { success: false, error: err };
+    }
+  };
+
+  return { registrarTransaccion, loading, error };
+};

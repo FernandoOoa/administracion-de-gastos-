@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApartados } from '../hooks/useApartados';
 import { useRegistro } from '../hooks/useRegistro';
-import { MdInput, MdOutput, MdSwapHoriz, MdCloudUpload } from 'react-icons/md';
+import { MdInput, MdOutput, MdSwapHoriz } from 'react-icons/md';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect } from 'react';
 
@@ -24,7 +24,6 @@ const RegistroRapido = () => {
   const [concepto, setConcepto] = useState('');
   const [apartadoId, setApartadoId] = useState('');
   const [apartadoDestinoId, setApartadoDestinoId] = useState('');
-  const [file, setFile] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
@@ -43,7 +42,6 @@ const RegistroRapido = () => {
       concepto,
       apartadoId,
       apartadoDestinoId: tipo === 'Transferencia' ? apartadoDestinoId : null,
-      comprobanteFile: file,
       fecha
     });
 
@@ -51,7 +49,6 @@ const RegistroRapido = () => {
       setSuccessMsg('¡Transacción guardada exitosamente!');
       setMonto('');
       setConcepto('');
-      setFile(null);
       setFecha(getTodayString());
       if (tipo === 'Transferencia') setApartadoDestinoId('');
     }
@@ -200,28 +197,7 @@ const RegistroRapido = () => {
           </div>
         )}
 
-        {/* Upload File (Solo Salidas) */}
-        {tipo === 'Salida' && (
-          <div className="animate-fadeIn">
-            <label className="block text-sm font-medium text-slate-300 mb-1">Comprobante (Opcional)</label>
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFile(e.target.files[0])}
-                className="hidden"
-                id="file-upload"
-              />
-              <label 
-                htmlFor="file-upload" 
-                className="w-full flex items-center justify-center gap-2 bg-slate-900/50 border border-slate-700 border-dashed rounded-xl px-4 py-4 text-slate-400 hover:text-white hover:border-slate-500 transition-all cursor-pointer"
-              >
-                <MdCloudUpload size={24} />
-                <span>{file ? file.name : "Subir foto del ticket"}</span>
-              </label>
-            </div>
-          </div>
-        )}
+
 
         <button
           type="submit"

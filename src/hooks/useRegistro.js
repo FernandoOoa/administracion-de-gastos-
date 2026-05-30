@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 import { collection, doc, runTransaction } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
 
 export const useRegistro = () => {
@@ -15,7 +14,6 @@ export const useRegistro = () => {
     concepto,
     apartadoId,
     apartadoDestinoId,
-    comprobanteFile,
     fecha
   }) => {
     setLoading(true);
@@ -24,16 +22,6 @@ export const useRegistro = () => {
       const parsedMonto = Number(monto);
       if (isNaN(parsedMonto) || parsedMonto <= 0) {
         throw new Error("El monto debe ser un número válido mayor a 0.");
-      }
-
-      let url_comprobante = null;
-
-      if (tipo === 'Salida' && comprobanteFile) {
-        const fileExt = comprobanteFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${currentUser.uid}.${fileExt}`;
-        const storageRef = ref(storage, `comprobantes/${fileName}`);
-        const snapshot = await uploadBytes(storageRef, comprobanteFile);
-        url_comprobante = await getDownloadURL(snapshot.ref);
       }
 
       let fechaTransaccion = new Date();
@@ -51,10 +39,6 @@ export const useRegistro = () => {
         fecha: fechaTransaccion,
         id_usuario_registro: currentUser.uid,
       };
-
-      if (tipo === 'Salida') {
-        transaccionData.url_comprobante = url_comprobante;
-      }
       
       if (tipo === 'Transferencia' && apartadoDestinoId) {
         transaccionData.apartado_destino_id = apartadoDestinoId;

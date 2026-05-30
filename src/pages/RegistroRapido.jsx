@@ -142,7 +142,7 @@ const RegistroRapido = () => {
           >
             <option value="">Selecciona un apartado...</option>
             {apartados.map(ap => (
-              <option key={ap.id} value={ap.id}>{ap.nombre} (${ap.saldo_actual})</option>
+              <option key={ap.id} value={ap.id}>{ap.nombre}</option>
             ))}
           </select>
         </div>

@@ -45,9 +45,11 @@ const Perfil = () => {
           {currentUser?.email}
         </p>
 
-        <div className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider mb-8 ${getRoleColor(userRole)}`}>
-          ROL: {userRole}
-        </div>
+        {userRole === 'ADMIN' && (
+          <div className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider mb-8 ${getRoleColor(userRole)}`}>
+            ROL: {userRole}
+          </div>
+        )}
 
         {userRole === 'ADMIN' && (
           <button 

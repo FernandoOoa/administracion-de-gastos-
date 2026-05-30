@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 
 export const useNotificaciones = () => {
@@ -82,7 +82,24 @@ export const useNotificaciones = () => {
     }
   };
 
+  const limpiarLeidas = async () => {
+    try {
+      const batch = writeBatch(db);
+      const leidas = notificaciones.filter(n => n.leida);
+      if (leidas.length === 0) return;
+
+      leidas.forEach(n => {
+        const docRef = doc(db, 'notificaciones', n.id);
+        batch.delete(docRef);
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error("Error al limpiar notificaciones leídas:", error);
+    }
+  };
+
   const unreadCount = notificaciones.filter(n => !n.leida).length;
 
-  return { notificaciones, loading, unreadCount, marcarComoLeida, enviarNotificacion };
+  return { notificaciones, loading, unreadCount, marcarComoLeida, enviarNotificacion, limpiarLeidas };
 };

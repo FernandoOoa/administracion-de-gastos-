@@ -10,8 +10,17 @@ const RegistroRapido = () => {
   const { registrarTransaccion, loading: saving, error } = useRegistro();
   const { userRole } = useAuth();
 
+  const getTodayString = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const [tipo, setTipo] = useState('Entrada');
   const [monto, setMonto] = useState('');
+  const [fecha, setFecha] = useState(getTodayString());
   const [concepto, setConcepto] = useState('');
   const [apartadoId, setApartadoId] = useState('');
   const [apartadoDestinoId, setApartadoDestinoId] = useState('');
@@ -34,7 +43,8 @@ const RegistroRapido = () => {
       concepto,
       apartadoId,
       apartadoDestinoId: tipo === 'Transferencia' ? apartadoDestinoId : null,
-      comprobanteFile: file
+      comprobanteFile: file,
+      fecha
     });
 
     if (res.success) {
@@ -42,6 +52,7 @@ const RegistroRapido = () => {
       setMonto('');
       setConcepto('');
       setFile(null);
+      setFecha(getTodayString());
       if (tipo === 'Transferencia') setApartadoDestinoId('');
     }
   };
@@ -114,6 +125,19 @@ const RegistroRapido = () => {
               className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl pl-10 pr-4 py-4 text-2xl font-semibold text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
           </div>
+        </div>
+
+        {/* Fecha */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Fecha del Movimiento</label>
+          <input
+            type="date"
+            required
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            max={getTodayString()}
+            className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+          />
         </div>
 
         {/* Concepto */}

@@ -15,7 +15,8 @@ export const useRegistro = () => {
     concepto,
     apartadoId,
     apartadoDestinoId,
-    comprobanteFile
+    comprobanteFile,
+    fecha
   }) => {
     setLoading(true);
     setError(null);
@@ -35,12 +36,19 @@ export const useRegistro = () => {
         url_comprobante = await getDownloadURL(snapshot.ref);
       }
 
+      let fechaTransaccion = new Date();
+      if (fecha) {
+        const [year, month, day] = fecha.split('-').map(Number);
+        const ahora = new Date();
+        fechaTransaccion = new Date(year, month - 1, day, ahora.getHours(), ahora.getMinutes(), ahora.getSeconds());
+      }
+
       const transaccionData = {
         tipo,
         monto: parsedMonto,
         concepto,
         apartado_id: apartadoId,
-        fecha: new Date(),
+        fecha: fechaTransaccion,
         id_usuario_registro: currentUser.uid,
       };
 

@@ -1,11 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { MdLogout, MdAdminPanelSettings, MdPerson } from 'react-icons/md';
+import { MdLogout, MdAdminPanelSettings, MdPerson, MdNotifications } from 'react-icons/md';
 
 const Perfil = () => {
   const { currentUser, userRole, logout } = useAuth();
   const navigate = useNavigate();
+
+  const [notifPermission, setNotifPermission] = useState(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
+  );
+
+  const solicitarPermisoNotificaciones = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const permission = await Notification.requestPermission();
+        setNotifPermission(permission);
+      } catch (err) {
+        console.error("Error solicitando permisos de notificacion:", err);
+      }
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -60,6 +75,31 @@ const Perfil = () => {
             <span>Administrar Permisos</span>
           </button>
         )}
+
+        {/* Notificaciones del Navegador */}
+        <div className="w-full mb-6">
+          {notifPermission === 'default' && (
+            <button 
+              onClick={solicitarPermisoNotificaciones}
+              className="w-full flex items-center justify-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-medium py-3 px-4 rounded-xl border border-blue-500/30 transition-all active:scale-95 text-sm"
+            >
+              <MdNotifications size={20} />
+              <span>Activar Notificaciones Web</span>
+            </button>
+          )}
+          {notifPermission === 'granted' && (
+            <div className="flex items-center justify-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 py-3 px-4 rounded-xl text-center w-full">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              <span>Notificaciones del navegador activas</span>
+            </div>
+          )}
+          {notifPermission === 'denied' && (
+            <div className="flex items-center justify-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 py-3 px-4 rounded-xl text-center w-full">
+              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+              <span>Notificaciones bloqueadas por navegador</span>
+            </div>
+          )}
+        </div>
 
         <button 
           onClick={handleLogout}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,9 +7,17 @@ export const useNotificaciones = () => {
   const [notificaciones, setNotificaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const { currentUser, userRole } = useAuth();
+  
+  const notificadosRef = useRef(new Set());
+  const esCargaInicial = useRef(true);
 
   useEffect(() => {
     if (!currentUser) return;
+
+    // Solicitar permiso de forma automatica al montar (si el navegador lo permite)
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(err => console.log("Error al pedir permiso de notificacion:", err));
+    }
 
     const notifRef = collection(db, 'notificaciones');
     const roleTarget = `ROLE_${userRole}`;
@@ -22,6 +30,28 @@ export const useNotificaciones = () => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       data.sort((a, b) => (b.fecha?.seconds || 0) - (a.fecha?.seconds || 0));
+      
+      // Manejar notificaciones nativas del navegador en tiempo real
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        data.forEach(n => {
+          if (!n.leida) {
+            if (esCargaInicial.current) {
+              // Registramos los existentes para evitar alertas de historiales viejos
+              notificadosRef.current.add(n.id);
+            } else if (!notificadosRef.current.has(n.id)) {
+              // Notificar al navegador
+              new Notification("AdminGastos", {
+                body: n.mensaje,
+                icon: '/pwa-192x192.png',
+                vibrate: [200, 100, 200]
+              });
+              notificadosRef.current.add(n.id);
+            }
+          }
+        });
+      }
+
+      esCargaInicial.current = false;
       setNotificaciones(data);
       setLoading(false);
     });

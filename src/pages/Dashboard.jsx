@@ -44,6 +44,24 @@ const Dashboard = () => {
     return <MdSwapHoriz className="text-purple-400" size={24} />;
   };
 
+  const getCustodiaLabel = (estado) => {
+    switch (estado) {
+      case 'POR_ENTREGAR': return 'En custodia';
+      case 'ESPERANDO_CONFIRMACION': return 'Enviado (Espera)';
+      case 'EN_TESORERIA': return 'En Tesorería';
+      default: return estado;
+    }
+  };
+
+  const getCustodiaBadgeStyle = (estado) => {
+    switch (estado) {
+      case 'POR_ENTREGAR': return 'bg-amber-500/15 text-amber-400 border border-amber-500/20';
+      case 'ESPERANDO_CONFIRMACION': return 'bg-purple-500/15 text-purple-400 border border-purple-500/20';
+      case 'EN_TESORERIA': return 'bg-green-500/15 text-green-400 border border-green-500/20';
+      default: return 'bg-slate-700/20 text-slate-400';
+    }
+  };
+
   // 1. Balance Total Global (dinero total actual en caja)
   const balanceTotalGlobal = apartados.reduce((sum, ap) => sum + (Number(ap.saldo_actual) || 0), 0);
 
@@ -390,7 +408,14 @@ const Dashboard = () => {
                     {getTransactionIcon(t.tipo)}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-200 line-clamp-1">{t.concepto}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-slate-200 line-clamp-1">{t.concepto}</p>
+                      {t.tipo === 'Entrada' && t.estado_custodia && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${getCustodiaBadgeStyle(t.estado_custodia)}`}>
+                          {getCustodiaLabel(t.estado_custodia)}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500">
                       {formatDate(t.fecha)} 
                       {/* Mostrar el origen/destino si fue transferencia */}

@@ -37,6 +37,7 @@ export const useRegistro = () => {
         concepto,
         apartado_id: apartadoId,
         fecha: fechaTransaccion,
+        fecha_registro: new Date(),
         id_usuario_registro: currentUser.uid,
       };
       
@@ -46,6 +47,7 @@ export const useRegistro = () => {
 
       if (userRole === 'TESORERA') {
         transaccionData.estado_custodia = 'EN_TESORERIA';
+        transaccionData.fecha_recepcion_tesoreria = new Date();
       } else {
         transaccionData.estado_custodia = 'POR_ENTREGAR';
         transaccionData.custodio_actual = currentUser.uid;

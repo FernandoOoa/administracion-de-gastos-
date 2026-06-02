@@ -53,8 +53,9 @@ const Custodia = () => {
                     {formatCurrency(t.monto)}
                   </span>
                 </div>
-                <div className="text-xs text-slate-500 mb-4">
-                  {formatDate(t.fecha)}
+                <div className="text-xs text-slate-500 mb-4 flex flex-col gap-0.5">
+                  <span>Fecha: {formatDate(t.fecha)}</span>
+                  {t.fecha_registro && <span>Registrado: {formatDate(t.fecha_registro)}</span>}
                 </div>
                 <button
                   onClick={() => entregarATesoreria(t.id)}
@@ -92,8 +93,9 @@ const Custodia = () => {
                       {formatCurrency(t.monto)}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 mb-4">
-                    {formatDate(t.fecha)}
+                  <div className="text-xs text-slate-500 mb-4 flex flex-col gap-0.5">
+                    <span>Fecha: {formatDate(t.fecha)}</span>
+                    {t.fecha_registro && <span>Registrado: {formatDate(t.fecha_registro)}</span>}
                   </div>
                   <button
                     onClick={() => confirmarRecepcion(t.id)}
@@ -132,8 +134,9 @@ const Custodia = () => {
                       {formatCurrency(t.monto)}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500">
-                    {formatDate(t.fecha)}
+                  <div className="text-xs text-slate-500 flex flex-col gap-0.5">
+                    <span>Fecha: {formatDate(t.fecha)}</span>
+                    {t.fecha_registro && <span>Registrado: {formatDate(t.fecha_registro)}</span>}
                   </div>
                 </div>
               ))}

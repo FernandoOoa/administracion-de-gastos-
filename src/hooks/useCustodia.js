@@ -97,7 +97,10 @@ export const useCustodia = () => {
       const transDoc = await getDoc(docRef);
       const data = transDoc.data();
 
-      await updateDoc(docRef, { estado_custodia: 'EN_TESORERIA' });
+      await updateDoc(docRef, { 
+        estado_custodia: 'EN_TESORERIA',
+        fecha_recepcion_tesoreria: new Date()
+      });
 
       if (data.id_usuario_registro) {
         await enviarNotificacion(

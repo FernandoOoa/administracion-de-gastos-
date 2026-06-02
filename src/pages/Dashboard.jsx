@@ -53,6 +53,12 @@ const Dashboard = () => {
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
   };
 
+  const formatDateWithTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
+
   const getTransactionIcon = (tipo) => {
     if (tipo === 'Entrada') return <MdTrendingUp className="text-blue-400" size={24} />;
     if (tipo === 'Salida') return <MdTrendingDown className="text-red-400" size={24} />;
@@ -440,11 +446,21 @@ const Dashboard = () => {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500">
-                      {formatDate(t.fecha)} 
+                    <p className="text-xs text-slate-500 flex flex-wrap gap-x-2 gap-y-0.5">
+                      <span>Fecha: {formatDate(t.fecha)}</span>
                       {/* Mostrar el origen/destino si fue transferencia */}
-                      {t.tipo === 'Transferencia' && ` (Transferido)`}
+                      {t.tipo === 'Transferencia' && <span>(Transferido)</span>}
                     </p>
+                    {t.tipo === 'Entrada' && (t.fecha_registro || t.fecha_recepcion_tesoreria) && (
+                      <div className="text-[10px] text-slate-400/80 mt-1 flex flex-col gap-0.5">
+                        {t.fecha_registro && (
+                          <span>Registrado: {formatDateWithTime(t.fecha_registro)}</span>
+                        )}
+                        {t.fecha_recepcion_tesoreria && (
+                          <span>Recibido Tesorería: {formatDateWithTime(t.fecha_recepcion_tesoreria)}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <p className={`font-semibold ${t.tipo === 'Salida' ? 'text-red-400' : t.tipo === 'Entrada' ? 'text-blue-400' : 'text-purple-400'}`}>

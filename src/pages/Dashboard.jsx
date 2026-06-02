@@ -4,14 +4,14 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { MdTrendingUp, MdTrendingDown, MdSwapHoriz, MdFilterList, MdSavings, MdInfo, MdCalendarToday, MdVisibility, MdVisibilityOff } from 'react-icons/md';
+import { MdTrendingUp, MdTrendingDown, MdSwapHoriz, MdFilterList, MdSavings, MdInfo, MdCalendarToday, MdVisibility, MdVisibilityOff, MdDelete } from 'react-icons/md';
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
 const Dashboard = () => {
   const { userRole } = useAuth();
   const { apartados, loading: loadingApartados } = useApartados();
-  const { transacciones, loadingTransacciones } = useDashboard();
+  const { transacciones, loadingTransacciones, eliminarTransaccion } = useDashboard();
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -30,6 +30,15 @@ const Dashboard = () => {
       localStorage.setItem('privacidad_saldos', String(newVal));
       return newVal;
     });
+  };
+
+  const handleEliminarTransaccion = async (id, concepto, monto) => {
+    if (window.confirm(`¿Estás seguro de eliminar el movimiento "${concepto}" por ${formatCurrency(monto)}? Se revertirán los saldos de los apartados correspondientes.`)) {
+      const res = await eliminarTransaccion(id);
+      if (!res.success) {
+        alert("Error al eliminar el movimiento: " + (res.error?.message || "Error desconocido"));
+      }
+    }
   };
 
   if (userRole === 'BASE') {
@@ -463,9 +472,20 @@ const Dashboard = () => {
                     )}
                   </div>
                 </div>
-                <p className={`font-semibold ${t.tipo === 'Salida' ? 'text-red-400' : t.tipo === 'Entrada' ? 'text-blue-400' : 'text-purple-400'}`}>
-                  {t.tipo === 'Salida' ? '-' : t.tipo === 'Entrada' ? '+' : ''}{ocultarSaldos ? '••••' : formatCurrency(t.monto)}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className={`font-semibold ${t.tipo === 'Salida' ? 'text-red-400' : t.tipo === 'Entrada' ? 'text-blue-400' : 'text-purple-400'}`}>
+                    {t.tipo === 'Salida' ? '-' : t.tipo === 'Entrada' ? '+' : ''}{ocultarSaldos ? '••••' : formatCurrency(t.monto)}
+                  </p>
+                  {userRole === 'ADMIN' && (
+                    <button 
+                      onClick={() => handleEliminarTransaccion(t.id, t.concepto, t.monto)}
+                      className="text-slate-500 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10 transition-colors ml-1 flex items-center justify-center"
+                      title="Eliminar movimiento"
+                    >
+                      <MdDelete size={18} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

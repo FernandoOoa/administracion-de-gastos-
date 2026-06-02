@@ -55,13 +55,17 @@ const Apartados = () => {
   const handleDeleteClick = async (e, apartado) => {
     e.stopPropagation();
     setActiveDropdownId(null);
-    if (apartado.saldo_actual > 0) {
+    if (apartado.saldo_actual > 0 && userRole !== 'ADMIN') {
       setErrorMsg(`No puedes borrar "${apartado.nombre}" porque tiene saldo positivo. Transfiere o combina los fondos primero.`);
       setTimeout(() => setErrorMsg(''), 4000);
       return;
     }
     
-    if (window.confirm(`¿Estás seguro de borrar el apartado "${apartado.nombre}"?`)) {
+    const confirmMessage = apartado.saldo_actual > 0 
+      ? `ADVERTENCIA: El apartado "${apartado.nombre}" tiene un saldo de ${formatCurrency(apartado.saldo_actual)}. Si lo borras, este saldo se perderá del balance general. ¿Estás seguro de que deseas borrarlo?`
+      : `¿Estás seguro de borrar el apartado "${apartado.nombre}"?`;
+
+    if (window.confirm(confirmMessage)) {
       await deleteApartado(apartado.id);
     }
   };

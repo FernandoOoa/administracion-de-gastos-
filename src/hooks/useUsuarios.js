@@ -35,5 +35,16 @@ export const useUsuarios = () => {
     }
   };
 
-  return { usuarios, loading, cambiarRol };
+  const cambiarBloqueo = async (uid, bloqueado) => {
+    try {
+      const userRef = doc(db, 'users', uid);
+      await updateDoc(userRef, { bloqueado });
+      return { success: true };
+    } catch (error) {
+      console.error("Error al cambiar estado de bloqueo:", error);
+      return { success: false, error };
+    }
+  };
+
+  return { usuarios, loading, cambiarRol, cambiarBloqueo };
 };

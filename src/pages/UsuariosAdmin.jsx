@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUsuarios } from '../hooks/useUsuarios';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { MdArrowBack, MdPerson } from 'react-icons/md';
+import { MdArrowBack, MdPerson, MdLock, MdLockOpen } from 'react-icons/md';
 
 const UsuariosAdmin = () => {
-  const { userRole } = useAuth();
-  const { usuarios, loading, cambiarRol } = useUsuarios();
+  const { userRole, currentUser } = useAuth();
+  const { usuarios, loading, cambiarRol, cambiarBloqueo } = useUsuarios();
   const navigate = useNavigate();
   const [updatingId, setUpdatingId] = useState(null);
 
@@ -18,6 +18,23 @@ const UsuariosAdmin = () => {
     setUpdatingId(uid);
     await cambiarRol(uid, newRole);
     setUpdatingId(null);
+  };
+
+  const handleBlockChange = async (uid, currentBlockedStatus) => {
+    if (uid === currentUser.uid) {
+      alert("No puedes bloquearte a ti mismo.");
+      return;
+    }
+    const newBlockedStatus = !currentBlockedStatus;
+    const confirmMsg = newBlockedStatus
+      ? "¿Estás seguro de que deseas bloquear a este usuario? Perderá acceso inmediato al sistema."
+      : "¿Estás seguro de que deseas desbloquear a este usuario?";
+      
+    if (window.confirm(confirmMsg)) {
+      setUpdatingId(uid);
+      await cambiarBloqueo(uid, newBlockedStatus);
+      setUpdatingId(null);
+    }
   };
 
   return (
@@ -54,25 +71,42 @@ const UsuariosAdmin = () => {
                 </div>
               </div>
 
-              <div className="relative flex-shrink-0">
-                <select
-                  value={user.rol || 'BASE'}
-                  onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                  disabled={updatingId === user.id}
-                  className={`bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm font-medium appearance-none w-full sm:w-auto outline-none transition-colors
-                    ${user.rol === 'ADMIN' ? 'text-purple-400 border-purple-500/50' : ''}
-                    ${user.rol === 'TESORERA' ? 'text-amber-400 border-amber-500/50' : ''}
-                    ${user.rol === 'GESTOR' ? 'text-blue-400 border-blue-500/50' : ''}
-                    ${user.rol === 'BASE' || !user.rol ? 'text-slate-400' : ''}
-                  `}
-                >
-                  <option value="BASE">BASE</option>
-                  <option value="GESTOR">GESTOR</option>
-                  <option value="TESORERA">TESORERA</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-                {updatingId === user.id && (
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin pointer-events-none"></div>
+              <div className="flex items-center gap-3 flex-shrink-0 w-full sm:w-auto justify-end">
+                <div className="relative">
+                  <select
+                    value={user.rol || 'BASE'}
+                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                    disabled={updatingId === user.id}
+                    className={`bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm font-medium appearance-none w-full sm:w-auto outline-none transition-colors pr-8
+                      ${user.rol === 'ADMIN' ? 'text-purple-400 border-purple-500/50' : ''}
+                      ${user.rol === 'TESORERA' ? 'text-amber-400 border-amber-500/50' : ''}
+                      ${user.rol === 'GESTOR' ? 'text-blue-400 border-blue-500/50' : ''}
+                      ${user.rol === 'BASE' || !user.rol ? 'text-slate-400' : ''}
+                    `}
+                  >
+                    <option value="BASE">BASE</option>
+                    <option value="GESTOR">GESTOR</option>
+                    <option value="TESORERA">TESORERA</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                  {updatingId === user.id && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin pointer-events-none"></div>
+                  )}
+                </div>
+
+                {user.id !== currentUser.uid && (
+                  <button
+                    onClick={() => handleBlockChange(user.id, !!user.bloqueado)}
+                    disabled={updatingId === user.id}
+                    className={`p-2 rounded-lg border transition-all flex items-center justify-center
+                      ${user.bloqueado 
+                        ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20' 
+                        : 'bg-slate-900 border-slate-600 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                      }`}
+                    title={user.bloqueado ? "Desbloquear usuario" : "Bloquear usuario"}
+                  >
+                    {user.bloqueado ? <MdLock size={18} /> : <MdLockOpen size={18} />}
+                  </button>
                 )}
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, runTransaction } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, runTransaction, query, where, getDocs, writeBatch } from 'firebase/firestore';
 
 export const useApartados = () => {
   const [apartados, setApartados] = useState([]);
@@ -52,11 +52,34 @@ export const useApartados = () => {
 
   const deleteApartado = async (id) => {
     try {
+      const batch = writeBatch(db);
+      
+      // 1. Eliminar el apartado
       const apartadoRef = doc(db, 'apartados', id);
-      await deleteDoc(apartadoRef);
+      batch.delete(apartadoRef);
+
+      // 2. Buscar y eliminar transacciones relacionadas
+      const transaccionesRef = collection(db, 'transacciones');
+      
+      // Transacciones de origen
+      const qOrigen = query(transaccionesRef, where('apartado_id', '==', id));
+      const snapshotOrigen = await getDocs(qOrigen);
+      snapshotOrigen.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // Transacciones de destino (para transferencias)
+      const qDestino = query(transaccionesRef, where('apartado_destino_id', '==', id));
+      const snapshotDestino = await getDocs(qDestino);
+      snapshotDestino.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // 3. Ejecutar el lote
+      await batch.commit();
       return { success: true };
     } catch (error) {
-      console.error("Error al borrar apartado: ", error);
+      console.error("Error al borrar apartado en cascada: ", error);
       return { success: false, error };
     }
   };

@@ -4,7 +4,7 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { MdTrendingUp, MdTrendingDown, MdSwapHoriz, MdFilterList, MdSavings, MdInfo, MdCalendarToday } from 'react-icons/md';
+import { MdTrendingUp, MdTrendingDown, MdSwapHoriz, MdFilterList, MdSavings, MdInfo, MdCalendarToday, MdVisibility, MdVisibilityOff } from 'react-icons/md';
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
@@ -16,6 +16,21 @@ const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedApartadoId, setSelectedApartadoId] = useState('');
+  
+  const [ocultarSaldos, setOcultarSaldos] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('privacidad_saldos') === 'true';
+    }
+    return false;
+  });
+
+  const toggleOcultarSaldos = () => {
+    setOcultarSaldos(prev => {
+      const newVal = !prev;
+      localStorage.setItem('privacidad_saldos', String(newVal));
+      return newVal;
+    });
+  };
 
   if (userRole === 'BASE') {
     return <Navigate to="/registro" />;
@@ -182,9 +197,18 @@ const Dashboard = () => {
         <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
         <div className="flex justify-between items-center relative z-10">
           <div>
-            <h2 className="text-blue-100 text-sm font-medium mb-1">Balance Total en Caja</h2>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-blue-100 text-sm font-medium">Balance Total en Caja</h2>
+              <button 
+                onClick={toggleOcultarSaldos} 
+                className="text-blue-200 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                title={ocultarSaldos ? "Mostrar saldos" : "Ocultar saldos"}
+              >
+                {ocultarSaldos ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+              </button>
+            </div>
             <p className="text-3xl font-extrabold text-white">
-              {formatCurrency(balanceTotalGlobal)}
+              {ocultarSaldos ? '••••••' : formatCurrency(balanceTotalGlobal)}
             </p>
           </div>
           <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md">
@@ -251,7 +275,7 @@ const Dashboard = () => {
             Entradas
           </span>
           <p className="text-sm font-bold text-blue-400 mt-2 truncate">
-            {formatCurrency(entradasMensuales)}
+            {ocultarSaldos ? '••••' : formatCurrency(entradasMensuales)}
           </p>
         </div>
 
@@ -262,7 +286,7 @@ const Dashboard = () => {
             Salidas
           </span>
           <p className="text-sm font-bold text-red-400 mt-2 truncate">
-            {formatCurrency(salidasMensuales)}
+            {ocultarSaldos ? '••••' : formatCurrency(salidasMensuales)}
           </p>
         </div>
 
@@ -273,7 +297,7 @@ const Dashboard = () => {
             Balance
           </span>
           <p className={`text-sm font-bold mt-2 truncate ${balanceMensual >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {balanceMensual >= 0 ? '+' : ''}{formatCurrency(balanceMensual)}
+            {ocultarSaldos ? '••••' : (balanceMensual >= 0 ? '+' : '') + formatCurrency(balanceMensual)}
           </p>
         </div>
       </div>
@@ -291,7 +315,7 @@ const Dashboard = () => {
               <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
               <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
               <Tooltip 
-                formatter={(value) => formatCurrency(value)}
+                formatter={(value) => ocultarSaldos ? '••••' : formatCurrency(value)}
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#f8fafc' }}
                 itemStyle={{ color: '#f8fafc' }}
               />
@@ -315,7 +339,7 @@ const Dashboard = () => {
             <div>
               <p className="text-xs text-slate-400 mb-1">Saldo Actual</p>
               <p className="text-lg font-bold text-white">
-                {formatCurrency(apartadoSeleccionadoObj.saldo_actual)}
+                {ocultarSaldos ? '••••' : formatCurrency(apartadoSeleccionadoObj.saldo_actual)}
               </p>
             </div>
             <div>
@@ -331,7 +355,7 @@ const Dashboard = () => {
             <div className="border-t border-slate-700/50 pt-4">
               <div className="flex justify-between text-xs text-slate-400 mb-2">
                 <span>Meta de Ahorro</span>
-                <span className="font-medium text-slate-300">{formatCurrency(apartadoSeleccionadoObj.meta_financiera)}</span>
+                <span className="font-medium text-slate-300">{ocultarSaldos ? '••••' : formatCurrency(apartadoSeleccionadoObj.meta_financiera)}</span>
               </div>
               <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
                 <div 
@@ -375,7 +399,7 @@ const Dashboard = () => {
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value) => formatCurrency(value)}
+                    formatter={(value) => ocultarSaldos ? '••••' : formatCurrency(value)}
                     contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#f8fafc' }}
                     itemStyle={{ color: '#f8fafc' }}
                   />
@@ -424,7 +448,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <p className={`font-semibold ${t.tipo === 'Salida' ? 'text-red-400' : t.tipo === 'Entrada' ? 'text-blue-400' : 'text-purple-400'}`}>
-                  {t.tipo === 'Salida' ? '-' : t.tipo === 'Entrada' ? '+' : ''}{formatCurrency(t.monto)}
+                  {t.tipo === 'Salida' ? '-' : t.tipo === 'Entrada' ? '+' : ''}{ocultarSaldos ? '••••' : formatCurrency(t.monto)}
                 </p>
               </div>
             ))}

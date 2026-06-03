@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useApartados } from '../hooks/useApartados';
 import ApartadoModal from '../components/ApartadoModal';
 import CombinarModal from '../components/CombinarModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { MdAdd, MdMoreVert, MdEdit, MdDelete, MdMergeType } from 'react-icons/md';
 
 const Apartados = () => {
@@ -27,6 +28,25 @@ const Apartados = () => {
   
   // Error genérico
   const [errorMsg, setErrorMsg] = useState('');
+
+  const [dialogConfig, setDialogConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: null
+  });
+
+  const showDialog = (config) => {
+    setDialogConfig({
+      isOpen: true,
+      ...config
+    });
+  };
+
+  const closeDialog = () => {
+    setDialogConfig(prev => ({ ...prev, isOpen: false }));
+  };
 
   const canEdit = userRole === 'ADMIN' || userRole === 'TESORERA';
 
@@ -52,7 +72,7 @@ const Apartados = () => {
     setActiveDropdownId(null);
   };
 
-  const handleDeleteClick = async (e, apartado) => {
+  const handleDeleteClick = (e, apartado) => {
     e.stopPropagation();
     setActiveDropdownId(null);
     if (apartado.saldo_actual > 0 && userRole !== 'ADMIN') {
@@ -61,13 +81,19 @@ const Apartados = () => {
       return;
     }
     
-    const confirmMessage = apartado.saldo_actual > 0 
+    const isWarning = apartado.saldo_actual > 0;
+    const confirmMessage = isWarning
       ? `ADVERTENCIA: El apartado "${apartado.nombre}" tiene un saldo de ${formatCurrency(apartado.saldo_actual)}. Si lo borras, este saldo se perderá del balance general. ¿Estás seguro de que deseas borrarlo?`
       : `¿Estás seguro de borrar el apartado "${apartado.nombre}"?`;
 
-    if (window.confirm(confirmMessage)) {
-      await deleteApartado(apartado.id);
-    }
+    showDialog({
+      title: isWarning ? 'Advertencia de Saldo' : 'Confirmar Eliminación',
+      message: confirmMessage,
+      type: isWarning ? 'danger' : 'warning',
+      onConfirm: async () => {
+        await deleteApartado(apartado.id);
+      }
+    });
   };
 
   const handleCombineClick = (e, apartado) => {
@@ -222,6 +248,7 @@ const Apartados = () => {
           />
         </>
       )}
+      <ConfirmModal {...dialogConfig} onClose={closeDialog} />
     </div>
   );
 };

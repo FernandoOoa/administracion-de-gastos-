@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MdClose } from 'react-icons/md';
+import ConfirmModal from './ConfirmModal';
 
 const EditMovimientoModal = ({ isOpen, onClose, onSave, apartados, initialData = null }) => {
   const [concepto, setConcepto] = useState('');
@@ -7,6 +8,25 @@ const EditMovimientoModal = ({ isOpen, onClose, onSave, apartados, initialData =
   const [fecha, setFecha] = useState('');
   const [apartadoId, setApartadoId] = useState('');
   const [apartadoDestinoId, setApartadoDestinoId] = useState('');
+
+  const [dialogConfig, setDialogConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: null
+  });
+
+  const showDialog = (config) => {
+    setDialogConfig({
+      isOpen: true,
+      ...config
+    });
+  };
+
+  const closeDialog = () => {
+    setDialogConfig(prev => ({ ...prev, isOpen: false }));
+  };
 
   useEffect(() => {
     if (isOpen && initialData) {
@@ -48,11 +68,19 @@ const EditMovimientoModal = ({ isOpen, onClose, onSave, apartados, initialData =
 
     if (initialData.tipo === 'Transferencia') {
       if (!apartadoDestinoId) {
-        alert("Debes seleccionar un apartado de destino.");
+        showDialog({
+          title: 'Falta Destino',
+          message: 'Debes seleccionar un apartado de destino.',
+          type: 'warning'
+        });
         return;
       }
       if (apartadoId === apartadoDestinoId) {
-        alert("El apartado de origen y destino no pueden ser iguales.");
+        showDialog({
+          title: 'Apartados Idénticos',
+          message: 'El apartado de origen y destino no pueden ser iguales.',
+          type: 'warning'
+        });
         return;
       }
       updateData.apartado_destino_id = apartadoDestinoId;
@@ -166,6 +194,7 @@ const EditMovimientoModal = ({ isOpen, onClose, onSave, apartados, initialData =
           </button>
         </form>
       </div>
+      <ConfirmModal {...dialogConfig} onClose={closeDialog} />
     </div>
   );
 };

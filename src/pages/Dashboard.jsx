@@ -6,6 +6,7 @@ import { Navigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { MdTrendingUp, MdTrendingDown, MdSwapHoriz, MdFilterList, MdSavings, MdInfo, MdCalendarToday, MdVisibility, MdVisibilityOff, MdDelete, MdEdit } from 'react-icons/md';
 import EditMovimientoModal from '../components/EditMovimientoModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
@@ -28,6 +29,25 @@ const Dashboard = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState(null);
 
+  const [dialogConfig, setDialogConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: null
+  });
+
+  const showDialog = (config) => {
+    setDialogConfig({
+      isOpen: true,
+      ...config
+    });
+  };
+
+  const closeDialog = () => {
+    setDialogConfig(prev => ({ ...prev, isOpen: false }));
+  };
+
   const toggleOcultarSaldos = () => {
     setOcultarSaldos(prev => {
       const newVal = !prev;
@@ -36,19 +56,32 @@ const Dashboard = () => {
     });
   };
 
-  const handleEliminarTransaccion = async (id, concepto, monto) => {
-    if (window.confirm(`¿Estás seguro de eliminar el movimiento "${concepto}" por ${formatCurrency(monto)}? Se revertirán los saldos de los apartados correspondientes.`)) {
-      const res = await eliminarTransaccion(id);
-      if (!res.success) {
-        alert("Error al eliminar el movimiento: " + (res.error?.message || "Error desconocido"));
+  const handleEliminarTransaccion = (id, concepto, monto) => {
+    showDialog({
+      title: 'Eliminar Movimiento',
+      message: `¿Estás seguro de eliminar el movimiento "${concepto}" por ${formatCurrency(monto)}? Se revertirán los saldos de los apartados correspondientes.`,
+      type: 'danger',
+      onConfirm: async () => {
+        const res = await eliminarTransaccion(id);
+        if (!res.success) {
+          showDialog({
+            title: 'Error',
+            message: "Error al eliminar el movimiento: " + (res.error?.message || "Error desconocido"),
+            type: 'danger'
+          });
+        }
       }
-    }
+    });
   };
 
   const handleSaveEdit = async (id, updateData) => {
     const res = await editarTransaccion(id, updateData);
     if (!res.success) {
-      alert("Error al guardar los cambios: " + (res.error?.message || "Error desconocido"));
+      showDialog({
+        title: 'Error',
+        message: "Error al guardar los cambios: " + (res.error?.message || "Error desconocido"),
+        type: 'danger'
+      });
     }
   };
 
@@ -584,6 +617,7 @@ const Dashboard = () => {
         apartados={apartados}
         initialData={transactionToEdit}
       />
+      <ConfirmModal {...dialogConfig} onClose={closeDialog} />
     </div>
   );
 };

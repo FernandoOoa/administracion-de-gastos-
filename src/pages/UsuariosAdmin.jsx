@@ -3,12 +3,32 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUsuarios } from '../hooks/useUsuarios';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { MdArrowBack, MdPerson, MdLock, MdLockOpen } from 'react-icons/md';
+import ConfirmModal from '../components/ConfirmModal';
 
 const UsuariosAdmin = () => {
   const { userRole, currentUser } = useAuth();
   const { usuarios, loading, cambiarRol, cambiarBloqueo } = useUsuarios();
   const navigate = useNavigate();
   const [updatingId, setUpdatingId] = useState(null);
+
+  const [dialogConfig, setDialogConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: null
+  });
+
+  const showDialog = (config) => {
+    setDialogConfig({
+      isOpen: true,
+      ...config
+    });
+  };
+
+  const closeDialog = () => {
+    setDialogConfig(prev => ({ ...prev, isOpen: false }));
+  };
 
   if (userRole !== 'ADMIN') {
     return <Navigate to="/" />;
@@ -20,9 +40,13 @@ const UsuariosAdmin = () => {
     setUpdatingId(null);
   };
 
-  const handleBlockChange = async (uid, currentBlockedStatus) => {
+  const handleBlockChange = (uid, currentBlockedStatus) => {
     if (uid === currentUser.uid) {
-      alert("No puedes bloquearte a ti mismo.");
+      showDialog({
+        title: 'Acción No Permitida',
+        message: 'No puedes bloquearte a ti mismo.',
+        type: 'danger'
+      });
       return;
     }
     const newBlockedStatus = !currentBlockedStatus;
@@ -30,11 +54,16 @@ const UsuariosAdmin = () => {
       ? "¿Estás seguro de que deseas bloquear a este usuario? Perderá acceso inmediato al sistema."
       : "¿Estás seguro de que deseas desbloquear a este usuario?";
       
-    if (window.confirm(confirmMsg)) {
-      setUpdatingId(uid);
-      await cambiarBloqueo(uid, newBlockedStatus);
-      setUpdatingId(null);
-    }
+    showDialog({
+      title: newBlockedStatus ? 'Bloquear Usuario' : 'Desbloquear Usuario',
+      message: confirmMsg,
+      type: newBlockedStatus ? 'danger' : 'warning',
+      onConfirm: async () => {
+        setUpdatingId(uid);
+        await cambiarBloqueo(uid, newBlockedStatus);
+        setUpdatingId(null);
+      }
+    });
   };
 
   return (
@@ -113,6 +142,7 @@ const UsuariosAdmin = () => {
           ))}
         </div>
       )}
+      <ConfirmModal {...dialogConfig} onClose={closeDialog} />
     </div>
   );
 };

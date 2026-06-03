@@ -62,7 +62,7 @@ const Custodia = () => {
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg transition-colors"
                 >
                   <MdSend size={18} />
-                  <span>Entregar a Tesorería</span>
+                  <span>{t.tipo === 'Salida' ? 'Reportar Salida' : t.tipo === 'Transferencia' ? 'Reportar Transferencia' : 'Entregar a Tesorería'}</span>
                 </button>
               </div>
             ))}
@@ -102,7 +102,7 @@ const Custodia = () => {
                     className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg transition-colors"
                   >
                     <MdCheckCircle size={18} />
-                    <span>Confirmar Recepción</span>
+                    <span>{t.tipo === 'Salida' ? 'Validar Salida' : t.tipo === 'Transferencia' ? 'Validar Transferencia' : 'Confirmar Recepción'}</span>
                   </button>
                 </div>
               ))}

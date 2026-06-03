@@ -78,9 +78,16 @@ export const useCustodia = () => {
 
       await updateDoc(docRef, { estado_custodia: 'ESPERANDO_CONFIRMACION' });
 
+      let mensaje = `El usuario ${currentUser.displayName || 'Gestor'} quiere entregarte $${data.monto || 0}.`;
+      if (data.tipo === 'Salida') {
+        mensaje = `El usuario ${currentUser.displayName || 'Gestor'} ha reportado una salida de $${data.monto || 0} para validación.`;
+      } else if (data.tipo === 'Transferencia') {
+        mensaje = `El usuario ${currentUser.displayName || 'Gestor'} ha reportado una transferencia de $${data.monto || 0} para validación.`;
+      }
+
       await enviarNotificacion(
         'ROLE_TESORERA',
-        `El usuario ${currentUser.displayName || 'Gestor'} quiere entregarte $${data.monto || 0}.`,
+        mensaje,
         'ACCION'
       );
 
@@ -103,9 +110,16 @@ export const useCustodia = () => {
       });
 
       if (data.id_usuario_registro) {
+        let mensajeNotif = `La Tesorería ha confirmado de recibido tu entrega de $${data.monto || 0}.`;
+        if (data.tipo === 'Salida') {
+          mensajeNotif = `La Tesorería ha validado tu reporte de salida de $${data.monto || 0}.`;
+        } else if (data.tipo === 'Transferencia') {
+          mensajeNotif = `La Tesorería ha validado tu transferencia de $${data.monto || 0}.`;
+        }
+
         await enviarNotificacion(
           data.id_usuario_registro,
-          `La Tesorería ha confirmado de recibido tu entrega de $${data.monto || 0}.`,
+          mensajeNotif,
           'INFO'
         );
       }

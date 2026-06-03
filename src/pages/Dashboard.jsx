@@ -472,54 +472,82 @@ const Dashboard = () => {
           </p>
         ) : (
           <div className="space-y-3">
-            {transaccionesFiltradas.map(t => (
-              <div key={t.id} className="flex items-center justify-between bg-slate-800/40 p-3 rounded-xl border border-slate-700/30">
-                <div className="flex items-center gap-3">
-                  <div className="bg-slate-900 p-2 rounded-lg">
-                    {getTransactionIcon(t.tipo)}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium text-slate-200 line-clamp-1">{t.concepto}</p>
-                      {t.tipo === 'Entrada' && t.estado_custodia && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${getCustodiaBadgeStyle(t.estado_custodia)}`}>
-                          {getCustodiaLabel(t.estado_custodia)}
-                        </span>
-                      )}
+            {transaccionesFiltradas.map((t, index) => {
+              const date = new Date(t.fecha.seconds * 1000);
+              const currentMonthName = MESES[date.getMonth()];
+              
+              // Determinar si debemos mostrar una división/cabecera de mes
+              let showMonthDivider = false;
+              if (selectedMonth === -1) {
+                if (index === 0) {
+                  showMonthDivider = true;
+                } else {
+                  const prevDate = new Date(transaccionesFiltradas[index - 1].fecha.seconds * 1000);
+                  if (date.getMonth() !== prevDate.getMonth() || date.getFullYear() !== prevDate.getFullYear()) {
+                    showMonthDivider = true;
+                  }
+                }
+              }
+
+              return (
+                <React.Fragment key={t.id}>
+                  {showMonthDivider && (
+                    <div className="flex items-center gap-2 pt-4 pb-2">
+                      <span className="text-xs font-semibold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full uppercase tracking-wider">
+                        {currentMonthName} {date.getFullYear()}
+                      </span>
+                      <div className="flex-1 h-px bg-slate-700/40"></div>
                     </div>
-                    <p className="text-xs text-slate-500 flex flex-wrap gap-x-2 gap-y-0.5">
-                      <span>Fecha: {formatDate(t.fecha)}</span>
-                      {/* Mostrar el origen/destino si fue transferencia */}
-                      {t.tipo === 'Transferencia' && <span>(Transferido)</span>}
-                    </p>
-                    {t.tipo === 'Entrada' && (t.fecha_registro || t.fecha_recepcion_tesoreria) && (
-                      <div className="text-[10px] text-slate-400/80 mt-1 flex flex-col gap-0.5">
-                        {t.fecha_registro && (
-                          <span>Registrado: {formatDateWithTime(t.fecha_registro)}</span>
-                        )}
-                        {t.fecha_recepcion_tesoreria && (
-                          <span>Recibido Tesorería: {formatDateWithTime(t.fecha_recepcion_tesoreria)}</span>
+                  )}
+                  <div className="flex items-center justify-between bg-slate-800/40 p-3 rounded-xl border border-slate-700/30">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-slate-900 p-2 rounded-lg">
+                        {getTransactionIcon(t.tipo)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-slate-200 line-clamp-1">{t.concepto}</p>
+                          {t.tipo === 'Entrada' && t.estado_custodia && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${getCustodiaBadgeStyle(t.estado_custodia)}`}>
+                              {getCustodiaLabel(t.estado_custodia)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 flex flex-wrap gap-x-2 gap-y-0.5">
+                          <span>Fecha: {formatDate(t.fecha)}</span>
+                          {/* Mostrar el origen/destino si fue transferencia */}
+                          {t.tipo === 'Transferencia' && <span>(Transferido)</span>}
+                        </p>
+                        {t.tipo === 'Entrada' && (t.fecha_registro || t.fecha_recepcion_tesoreria) && (
+                          <div className="text-[10px] text-slate-400/80 mt-1 flex flex-col gap-0.5">
+                            {t.fecha_registro && (
+                              <span>Registrado: {formatDateWithTime(t.fecha_registro)}</span>
+                            )}
+                            {t.fecha_recepcion_tesoreria && (
+                              <span>Recibido Tesorería: {formatDateWithTime(t.fecha_recepcion_tesoreria)}</span>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <p className={`font-semibold ${t.tipo === 'Salida' ? 'text-red-400' : t.tipo === 'Entrada' ? 'text-blue-400' : 'text-purple-400'}`}>
+                        {t.tipo === 'Salida' ? '-' : t.tipo === 'Entrada' ? '+' : ''}{ocultarSaldos ? '••••' : formatCurrency(t.monto)}
+                      </p>
+                      {userRole === 'ADMIN' && (
+                        <button 
+                          onClick={() => handleEliminarTransaccion(t.id, t.concepto, t.monto)}
+                          className="text-slate-500 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10 transition-colors ml-1 flex items-center justify-center"
+                          title="Eliminar movimiento"
+                        >
+                          <MdDelete size={18} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className={`font-semibold ${t.tipo === 'Salida' ? 'text-red-400' : t.tipo === 'Entrada' ? 'text-blue-400' : 'text-purple-400'}`}>
-                    {t.tipo === 'Salida' ? '-' : t.tipo === 'Entrada' ? '+' : ''}{ocultarSaldos ? '••••' : formatCurrency(t.monto)}
-                  </p>
-                  {userRole === 'ADMIN' && (
-                    <button 
-                      onClick={() => handleEliminarTransaccion(t.id, t.concepto, t.monto)}
-                      className="text-slate-500 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10 transition-colors ml-1 flex items-center justify-center"
-                      title="Eliminar movimiento"
-                    >
-                      <MdDelete size={18} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                </React.Fragment>
+              );
+            })}
           </div>
         )}
       </div>

@@ -77,5 +77,93 @@ export const useDashboard = () => {
     }
   };
 
-  return { transacciones, loadingTransacciones, eliminarTransaccion };
+  const editarTransaccion = async (id, nuevosDatos) => {
+    try {
+      await runTransaction(db, async (transaction) => {
+        const transRef = doc(db, 'transacciones', id);
+        const transDoc = await transaction.get(transRef);
+        
+        if (!transDoc.exists()) {
+          throw new Error("La transacción no existe.");
+        }
+
+        const oldData = transDoc.data();
+        
+        // 1. Revertir el balance anterior
+        const { tipo: oldTipo, monto: oldMonto, apartado_id: oldApartadoId, apartado_destino_id: oldApartadoDestinoId } = oldData;
+        if (oldTipo === 'Entrada') {
+          const apRef = doc(db, 'apartados', oldApartadoId);
+          const apDoc = await transaction.get(apRef);
+          if (apDoc.exists()) {
+            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) - oldMonto });
+          }
+        } else if (oldTipo === 'Salida') {
+          const apRef = doc(db, 'apartados', oldApartadoId);
+          const apDoc = await transaction.get(apRef);
+          if (apDoc.exists()) {
+            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) + oldMonto });
+          }
+        } else if (oldTipo === 'Transferencia') {
+          const apRef = doc(db, 'apartados', oldApartadoId);
+          const apDestRef = doc(db, 'apartados', oldApartadoDestinoId);
+          const apDoc = await transaction.get(apRef);
+          const apDestDoc = await transaction.get(apDestRef);
+          if (apDoc.exists()) {
+            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) + oldMonto });
+          }
+          if (apDestDoc.exists()) {
+            transaction.update(apDestRef, { saldo_actual: (apDestDoc.data().saldo_actual || 0) - oldMonto });
+          }
+        }
+
+        // 2. Obtener los nuevos datos
+        const { concepto: newConcepto, monto: newMonto, fecha: newFecha, apartado_id: newApartadoId, apartado_destino_id: newApartadoDestinoId } = nuevosDatos;
+
+        // 3. Aplicar el nuevo balance
+        if (oldTipo === 'Entrada') {
+          const apRef = doc(db, 'apartados', newApartadoId);
+          const apDoc = await transaction.get(apRef);
+          if (apDoc.exists()) {
+            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) + newMonto });
+          }
+        } else if (oldTipo === 'Salida') {
+          const apRef = doc(db, 'apartados', newApartadoId);
+          const apDoc = await transaction.get(apRef);
+          if (apDoc.exists()) {
+            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) - newMonto });
+          }
+        } else if (oldTipo === 'Transferencia') {
+          const apRef = doc(db, 'apartados', newApartadoId);
+          const apDestRef = doc(db, 'apartados', newApartadoDestinoId);
+          const apDoc = await transaction.get(apRef);
+          const apDestDoc = await transaction.get(apDestRef);
+          if (apDoc.exists()) {
+            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) - newMonto });
+          }
+          if (apDestDoc.exists()) {
+            transaction.update(apDestRef, { saldo_actual: (apDestDoc.data().saldo_actual || 0) + newMonto });
+          }
+        }
+
+        // 4. Actualizar el documento de la transacción
+        const updateData = {
+          concepto: newConcepto,
+          monto: newMonto,
+          fecha: newFecha,
+          apartado_id: newApartadoId,
+        };
+        if (oldTipo === 'Transferencia') {
+          updateData.apartado_destino_id = newApartadoDestinoId;
+        }
+
+        transaction.update(transRef, updateData);
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Error al editar transacción:", error);
+      return { success: false, error };
+    }
+  };
+
+  return { transacciones, loadingTransacciones, eliminarTransaccion, editarTransaccion };
 };

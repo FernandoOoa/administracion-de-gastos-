@@ -4,14 +4,15 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { MdTrendingUp, MdTrendingDown, MdSwapHoriz, MdFilterList, MdSavings, MdInfo, MdCalendarToday, MdVisibility, MdVisibilityOff, MdDelete } from 'react-icons/md';
+import { MdTrendingUp, MdTrendingDown, MdSwapHoriz, MdFilterList, MdSavings, MdInfo, MdCalendarToday, MdVisibility, MdVisibilityOff, MdDelete, MdEdit } from 'react-icons/md';
+import EditMovimientoModal from '../components/EditMovimientoModal';
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
 const Dashboard = () => {
   const { userRole } = useAuth();
   const { apartados, loading: loadingApartados } = useApartados();
-  const { transacciones, loadingTransacciones, eliminarTransaccion } = useDashboard();
+  const { transacciones, loadingTransacciones, eliminarTransaccion, editarTransaccion } = useDashboard();
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -23,6 +24,9 @@ const Dashboard = () => {
     }
     return false;
   });
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState(null);
 
   const toggleOcultarSaldos = () => {
     setOcultarSaldos(prev => {
@@ -38,6 +42,13 @@ const Dashboard = () => {
       if (!res.success) {
         alert("Error al eliminar el movimiento: " + (res.error?.message || "Error desconocido"));
       }
+    }
+  };
+
+  const handleSaveEdit = async (id, updateData) => {
+    const res = await editarTransaccion(id, updateData);
+    if (!res.success) {
+      alert("Error al guardar los cambios: " + (res.error?.message || "Error desconocido"));
     }
   };
 
@@ -535,13 +546,25 @@ const Dashboard = () => {
                         {t.tipo === 'Salida' ? '-' : t.tipo === 'Entrada' ? '+' : ''}{ocultarSaldos ? '••••' : formatCurrency(t.monto)}
                       </p>
                       {userRole === 'ADMIN' && (
-                        <button 
-                          onClick={() => handleEliminarTransaccion(t.id, t.concepto, t.monto)}
-                          className="text-slate-500 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10 transition-colors ml-1 flex items-center justify-center"
-                          title="Eliminar movimiento"
-                        >
-                          <MdDelete size={18} />
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => {
+                              setTransactionToEdit(t);
+                              setIsEditModalOpen(true);
+                            }}
+                            className="text-slate-500 hover:text-blue-400 p-1 rounded-lg hover:bg-blue-500/10 transition-colors ml-1 flex items-center justify-center"
+                            title="Editar movimiento"
+                          >
+                            <MdEdit size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleEliminarTransaccion(t.id, t.concepto, t.monto)}
+                            className="text-slate-500 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10 transition-colors ml-1 flex items-center justify-center"
+                            title="Eliminar movimiento"
+                          >
+                            <MdDelete size={18} />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -551,6 +574,16 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+      <EditMovimientoModal 
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setTransactionToEdit(null);
+        }}
+        onSave={handleSaveEdit}
+        apartados={apartados}
+        initialData={transactionToEdit}
+      />
     </div>
   );
 };

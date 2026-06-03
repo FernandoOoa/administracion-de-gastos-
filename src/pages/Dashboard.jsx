@@ -95,11 +95,11 @@ const Dashboard = () => {
   // 1. Balance Total Global (dinero total actual en caja)
   const balanceTotalGlobal = apartados.reduce((sum, ap) => sum + (Number(ap.saldo_actual) || 0), 0);
 
-  // 2. Filtrar transacciones por mes, año y apartado seleccionado
+  // 2. Filtrar transacciones por mes, año y apartado seleccionado (soporta todo el año)
   const transaccionesFiltradas = transacciones.filter(t => {
     if (!t.fecha) return false;
     const date = new Date(t.fecha.seconds * 1000);
-    const matchMes = date.getMonth() === selectedMonth;
+    const matchMes = selectedMonth === -1 || date.getMonth() === selectedMonth;
     const matchAnio = date.getFullYear() === selectedYear;
     
     if (selectedApartadoId) {
@@ -137,45 +137,76 @@ const Dashboard = () => {
 
   const balanceMensual = entradasMensuales - salidasMensuales;
 
-  // 4. Agrupar datos semanales del mes para el gráfico de barras comparativo
-  const getSemanasData = () => {
-    const data = [
-      { name: 'Sem 1', Entradas: 0, Salidas: 0 },
-      { name: 'Sem 2', Entradas: 0, Salidas: 0 },
-      { name: 'Sem 3', Entradas: 0, Salidas: 0 },
-      { name: 'Sem 4', Entradas: 0, Salidas: 0 },
-      { name: 'Sem 5', Entradas: 0, Salidas: 0 }
-    ];
+  // 4. Agrupar datos comparativos (semanal para un mes, o mensual para todo el año)
+  const getChartData = () => {
+    if (selectedMonth === -1) {
+      // Agrupar por mes
+      const data = MESES.map(mes => ({
+        name: mes.substring(0, 3), // Ene, Feb, Mar, etc.
+        Entradas: 0,
+        Salidas: 0
+      }));
 
-    transaccionesFiltradas.forEach(t => {
-      const date = new Date(t.fecha.seconds * 1000);
-      const dia = date.getDate();
-      let idx = 0;
-      if (dia <= 7) idx = 0;
-      else if (dia <= 14) idx = 1;
-      else if (dia <= 21) idx = 2;
-      else if (dia <= 28) idx = 3;
-      else idx = 4;
+      transaccionesFiltradas.forEach(t => {
+        const date = new Date(t.fecha.seconds * 1000);
+        const mesIdx = date.getMonth();
 
-      if (selectedApartadoId) {
-        if (t.tipo === 'Entrada' && t.apartado_id === selectedApartadoId) {
-          data[idx].Entradas += t.monto;
-        } else if (t.tipo === 'Salida' && t.apartado_id === selectedApartadoId) {
-          data[idx].Salidas += t.monto;
-        } else if (t.tipo === 'Transferencia') {
-          if (t.apartado_destino_id === selectedApartadoId) data[idx].Entradas += t.monto;
-          if (t.apartado_id === selectedApartadoId) data[idx].Salidas += t.monto;
+        if (selectedApartadoId) {
+          if (t.tipo === 'Entrada' && t.apartado_id === selectedApartadoId) {
+            data[mesIdx].Entradas += t.monto;
+          } else if (t.tipo === 'Salida' && t.apartado_id === selectedApartadoId) {
+            data[mesIdx].Salidas += t.monto;
+          } else if (t.tipo === 'Transferencia') {
+            if (t.apartado_destino_id === selectedApartadoId) data[mesIdx].Entradas += t.monto;
+            if (t.apartado_id === selectedApartadoId) data[mesIdx].Salidas += t.monto;
+          }
+        } else {
+          if (t.tipo === 'Entrada') data[mesIdx].Entradas += t.monto;
+          else if (t.tipo === 'Salida') data[mesIdx].Salidas += t.monto;
         }
-      } else {
-        if (t.tipo === 'Entrada') data[idx].Entradas += t.monto;
-        else if (t.tipo === 'Salida') data[idx].Salidas += t.monto;
-      }
-    });
+      });
 
-    return data;
+      return data;
+    } else {
+      // Agrupar por semanas del mes
+      const data = [
+        { name: 'Sem 1', Entradas: 0, Salidas: 0 },
+        { name: 'Sem 2', Entradas: 0, Salidas: 0 },
+        { name: 'Sem 3', Entradas: 0, Salidas: 0 },
+        { name: 'Sem 4', Entradas: 0, Salidas: 0 },
+        { name: 'Sem 5', Entradas: 0, Salidas: 0 }
+      ];
+
+      transaccionesFiltradas.forEach(t => {
+        const date = new Date(t.fecha.seconds * 1000);
+        const dia = date.getDate();
+        let idx = 0;
+        if (dia <= 7) idx = 0;
+        else if (dia <= 14) idx = 1;
+        else if (dia <= 21) idx = 2;
+        else if (dia <= 28) idx = 3;
+        else idx = 4;
+
+        if (selectedApartadoId) {
+          if (t.tipo === 'Entrada' && t.apartado_id === selectedApartadoId) {
+            data[idx].Entradas += t.monto;
+          } else if (t.tipo === 'Salida' && t.apartado_id === selectedApartadoId) {
+            data[idx].Salidas += t.monto;
+          } else if (t.tipo === 'Transferencia') {
+            if (t.apartado_destino_id === selectedApartadoId) data[idx].Entradas += t.monto;
+            if (t.apartado_id === selectedApartadoId) data[idx].Salidas += t.monto;
+          }
+        } else {
+          if (t.tipo === 'Entrada') data[idx].Entradas += t.monto;
+          else if (t.tipo === 'Salida') data[idx].Salidas += t.monto;
+        }
+      });
+
+      return data;
+    }
   };
 
-  const barChartData = getSemanasData();
+  const barChartData = getChartData();
 
   // 5. Preparar datos para el grafico de dona (distribución actual)
   const donutChartData = apartados
@@ -246,6 +277,7 @@ const Dashboard = () => {
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
             >
+              <option value="-1">Todo el año</option>
               {MESES.map((mes, idx) => (
                 <option key={idx} value={idx}>{mes}</option>
               ))}
@@ -321,7 +353,7 @@ const Dashboard = () => {
       <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 mb-6">
         <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
           <MdCalendarToday className="text-blue-400" />
-          Comparativa Semanal ({MESES[selectedMonth]})
+          {selectedMonth === -1 ? `Comparativa Mensual (${selectedYear})` : `Comparativa Semanal (${MESES[selectedMonth]})`}
         </h3>
         <div className="h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -429,7 +461,7 @@ const Dashboard = () => {
       {/* Historial de Movimientos del Mes */}
       <div>
         <h3 className="text-base font-bold text-slate-200 mb-4 flex justify-between items-center">
-          <span>Movimientos del Mes</span>
+          <span>{selectedMonth === -1 ? 'Movimientos del Año' : 'Movimientos del Mes'}</span>
           <span className="text-xs font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
             {transaccionesFiltradas.length} total
           </span>

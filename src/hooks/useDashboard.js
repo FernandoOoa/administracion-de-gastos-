@@ -88,64 +88,76 @@ export const useDashboard = () => {
         }
 
         const oldData = transDoc.data();
-        
-        // 1. Revertir el balance anterior
         const { tipo: oldTipo, monto: oldMonto, apartado_id: oldApartadoId, apartado_destino_id: oldApartadoDestinoId } = oldData;
-        if (oldTipo === 'Entrada') {
-          const apRef = doc(db, 'apartados', oldApartadoId);
-          const apDoc = await transaction.get(apRef);
-          if (apDoc.exists()) {
-            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) - oldMonto });
-          }
-        } else if (oldTipo === 'Salida') {
-          const apRef = doc(db, 'apartados', oldApartadoId);
-          const apDoc = await transaction.get(apRef);
-          if (apDoc.exists()) {
-            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) + oldMonto });
-          }
-        } else if (oldTipo === 'Transferencia') {
-          const apRef = doc(db, 'apartados', oldApartadoId);
-          const apDestRef = doc(db, 'apartados', oldApartadoDestinoId);
-          const apDoc = await transaction.get(apRef);
-          const apDestDoc = await transaction.get(apDestRef);
-          if (apDoc.exists()) {
-            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) + oldMonto });
-          }
-          if (apDestDoc.exists()) {
-            transaction.update(apDestRef, { saldo_actual: (apDestDoc.data().saldo_actual || 0) - oldMonto });
-          }
-        }
-
-        // 2. Obtener los nuevos datos
         const { concepto: newConcepto, monto: newMonto, fecha: newFecha, apartado_id: newApartadoId, apartado_destino_id: newApartadoDestinoId } = nuevosDatos;
 
-        // 3. Aplicar el nuevo balance
-        if (oldTipo === 'Entrada') {
-          const apRef = doc(db, 'apartados', newApartadoId);
+        // 1. Identificar todos los IDs de apartados únicos que necesitamos leer
+        const uniqueApartadoIds = new Set();
+        if (oldApartadoId) uniqueApartadoIds.add(oldApartadoId);
+        if (oldApartadoDestinoId) uniqueApartadoIds.add(oldApartadoDestinoId);
+        if (newApartadoId) uniqueApartadoIds.add(newApartadoId);
+        if (newApartadoDestinoId) uniqueApartadoIds.add(newApartadoDestinoId);
+
+        // 2. Ejecutar todas las lecturas de apartados primero (Lecturas/Reads)
+        const apartadosDocs = {};
+        for (const apId of uniqueApartadoIds) {
+          const apRef = doc(db, 'apartados', apId);
           const apDoc = await transaction.get(apRef);
-          if (apDoc.exists()) {
-            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) + newMonto });
+          apartadosDocs[apId] = apDoc;
+        }
+
+        // 3. Inicializar balances en memoria
+        const balances = {};
+        for (const apId in apartadosDocs) {
+          const docSnap = apartadosDocs[apId];
+          balances[apId] = docSnap.exists() ? (Number(docSnap.data().saldo_actual) || 0) : 0;
+        }
+
+        // 4. Revertir el balance de la transacción anterior en memoria
+        if (oldTipo === 'Entrada') {
+          if (balances[oldApartadoId] !== undefined) {
+            balances[oldApartadoId] -= oldMonto;
           }
         } else if (oldTipo === 'Salida') {
-          const apRef = doc(db, 'apartados', newApartadoId);
-          const apDoc = await transaction.get(apRef);
-          if (apDoc.exists()) {
-            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) - newMonto });
+          if (balances[oldApartadoId] !== undefined) {
+            balances[oldApartadoId] += oldMonto;
           }
         } else if (oldTipo === 'Transferencia') {
-          const apRef = doc(db, 'apartados', newApartadoId);
-          const apDestRef = doc(db, 'apartados', newApartadoDestinoId);
-          const apDoc = await transaction.get(apRef);
-          const apDestDoc = await transaction.get(apDestRef);
-          if (apDoc.exists()) {
-            transaction.update(apRef, { saldo_actual: (apDoc.data().saldo_actual || 0) - newMonto });
+          if (balances[oldApartadoId] !== undefined) {
+            balances[oldApartadoId] += oldMonto;
           }
-          if (apDestDoc.exists()) {
-            transaction.update(apDestRef, { saldo_actual: (apDestDoc.data().saldo_actual || 0) + newMonto });
+          if (balances[oldApartadoDestinoId] !== undefined) {
+            balances[oldApartadoDestinoId] -= oldMonto;
           }
         }
 
-        // 4. Actualizar el documento de la transacción
+        // 5. Aplicar el nuevo balance de la transacción en memoria
+        if (oldTipo === 'Entrada') {
+          if (balances[newApartadoId] !== undefined) {
+            balances[newApartadoId] += newMonto;
+          }
+        } else if (oldTipo === 'Salida') {
+          if (balances[newApartadoId] !== undefined) {
+            balances[newApartadoId] -= newMonto;
+          }
+        } else if (oldTipo === 'Transferencia') {
+          if (balances[newApartadoId] !== undefined) {
+            balances[newApartadoId] -= newMonto;
+          }
+          if (balances[newApartadoDestinoId] !== undefined) {
+            balances[newApartadoDestinoId] += newMonto;
+          }
+        }
+
+        // 6. Aplicar todos los cambios acumulados (Escrituras/Writes) en los apartados
+        for (const apId in balances) {
+          const apDoc = apartadosDocs[apId];
+          if (apDoc && apDoc.exists()) {
+            transaction.update(doc(db, 'apartados', apId), { saldo_actual: balances[apId] });
+          }
+        }
+
+        // 7. Actualizar el documento de la transacción (Escritura/Write)
         const updateData = {
           concepto: newConcepto,
           monto: newMonto,

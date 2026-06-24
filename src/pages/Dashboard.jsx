@@ -301,7 +301,8 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="page-container pb-28">
+    <>
+      <div className="page-container pb-28">
       {/* Header Balance General Destacado */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-6 shadow-xl mb-6 relative overflow-hidden">
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
@@ -638,6 +639,7 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+      </div>
       <EditMovimientoModal 
         isOpen={isEditModalOpen}
         onClose={() => {
@@ -660,7 +662,7 @@ const Dashboard = () => {
         usuariosMap={usuariosMap}
         ocultarSaldos={ocultarSaldos}
       />
-    </div>
+    </>
   );
 };
 

@@ -1,11 +1,118 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { MdLogout, MdAdminPanelSettings, MdPerson, MdNotifications } from 'react-icons/md';
+import { MdLogout, MdAdminPanelSettings, MdPerson, MdNotifications, MdFileDownload } from 'react-icons/md';
+import { db } from '../firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 const Perfil = () => {
   const { currentUser, userRole, logout } = useAuth();
   const navigate = useNavigate();
+  const [exporting, setExporting] = useState(false);
+
+  const exportarAExcel = async () => {
+    setExporting(true);
+    try {
+      // 1. Obtener los datos de Firestore
+      const transSnap = await getDocs(query(collection(db, 'transacciones'), orderBy('fecha', 'desc')));
+      const apartadosSnap = await getDocs(collection(db, 'apartados'));
+      
+      let usersMap = {};
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        usersSnap.docs.forEach(doc => {
+          usersMap[doc.id] = doc.data().nombre || doc.data().email || 'Sin nombre';
+        });
+      } catch (e) {
+        console.warn("No se pudieron leer los usuarios (sin permisos).", e);
+      }
+
+      const apartadosMap = {};
+      apartadosSnap.docs.forEach(doc => {
+        apartadosMap[doc.id] = doc.data().nombre || 'Desconocido';
+      });
+
+      // 2. Construir las filas del archivo CSV
+      const headers = [
+        'ID Transaccion',
+        'Fecha Movimiento',
+        'Fecha Registro',
+        'Tipo',
+        'Monto',
+        'Concepto',
+        'Apartado / Origen',
+        'Apartado Destino',
+        'Registrado Por',
+        'Estado Custodia',
+        'Recepcion Tesoreria'
+      ];
+
+      const rows = [headers];
+
+      transSnap.docs.forEach(docSnap => {
+        const t = docSnap.data();
+        
+        const parseDate = (d) => {
+          if (!d) return '';
+          const date = d.seconds ? new Date(d.seconds * 1000) : new Date(d);
+          return date.toLocaleString('es-MX');
+        };
+
+        const parseDateOnly = (d) => {
+          if (!d) return '';
+          const date = d.seconds ? new Date(d.seconds * 1000) : new Date(d);
+          return date.toLocaleDateString('es-MX');
+        };
+
+        const custodioLabel = (estado) => {
+          switch (estado) {
+            case 'POR_ENTREGAR': return 'En custodia';
+            case 'ESPERANDO_CONFIRMACION': return 'Enviado (Espera)';
+            case 'EN_TESORERIA': return 'En Tesoreria';
+            default: return estado || '';
+          }
+        };
+
+        rows.push([
+          docSnap.id,
+          parseDateOnly(t.fecha),
+          parseDate(t.fecha_registro),
+          t.tipo || '',
+          t.monto || 0,
+          (t.concepto || '').replace(/"/g, "'"),
+          apartadosMap[t.apartado_id] || 'N/A',
+          t.tipo === 'Transferencia' ? (apartadosMap[t.apartado_destino_id] || 'N/A') : '',
+          usersMap[t.id_usuario_registro] || t.id_usuario_registro || 'Desconocido',
+          custodioLabel(t.estado_custodia),
+          parseDate(t.fecha_recepcion_tesoreria)
+        ]);
+      });
+
+      // 3. Convertir a formato CSV agregando BOM UTF-8 para compatibilidad con caracteres en español
+      const csvContent = "\uFEFF" + rows.map(e => e.map(val => {
+        let strVal = String(val);
+        if (strVal.includes(',') || strVal.includes('\n') || strVal.includes('"')) {
+          strVal = `"${strVal.replace(/"/g, '""')}"`;
+        }
+        return strVal;
+      }).join(',')).join('\n');
+
+      // 4. Disparar descarga del archivo
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `movimientos_caja_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error al exportar datos:", error);
+      alert("Hubo un error al exportar los datos: " + (error.message || "Error desconocido"));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const [notifPermission, setNotifPermission] = useState(
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
@@ -100,6 +207,22 @@ const Perfil = () => {
             </div>
           )}
         </div>
+
+        {/* Botón para Exportar Datos */}
+        {userRole !== 'BASE' && (
+          <button 
+            onClick={exportarAExcel}
+            disabled={exporting}
+            className="w-full mb-4 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-emerald-650/15 transition-all active:scale-95"
+          >
+            {exporting ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <MdFileDownload size={20} />
+            )}
+            <span>{exporting ? 'Exportando...' : 'Exportar Movimientos a Excel'}</span>
+          </button>
+        )}
 
         <button 
           onClick={handleLogout}

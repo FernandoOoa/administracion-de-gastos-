@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApartados } from '../hooks/useApartados';
 import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,6 +7,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Ba
 import { MdTrendingUp, MdTrendingDown, MdSwapHoriz, MdFilterList, MdSavings, MdInfo, MdCalendarToday, MdVisibility, MdVisibilityOff, MdDelete, MdEdit } from 'react-icons/md';
 import EditMovimientoModal from '../components/EditMovimientoModal';
 import ConfirmModal from '../components/ConfirmModal';
+import DetalleMovimientoModal from '../components/DetalleMovimientoModal';
+import { db } from '../firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
@@ -28,6 +31,24 @@ const Dashboard = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState(null);
+
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [transactionForDetail, setTransactionForDetail] = useState(null);
+  const [usuariosMap, setUsuariosMap] = useState({});
+
+  useEffect(() => {
+    const usersRef = collection(db, 'users');
+    const unsubscribe = onSnapshot(usersRef, (snapshot) => {
+      const map = {};
+      snapshot.docs.forEach(doc => {
+        map[doc.id] = doc.data().nombre || doc.data().email || 'Sin nombre';
+      });
+      setUsuariosMap(map);
+    }, (error) => {
+      console.warn("No se pudieron cargar todos los usuarios (error de permisos):", error);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const [dialogConfig, setDialogConfig] = useState({
     isOpen: false,
@@ -543,7 +564,13 @@ const Dashboard = () => {
                       <div className="flex-1 h-px bg-slate-700/40"></div>
                     </div>
                   )}
-                  <div className="flex items-center justify-between bg-slate-800/40 p-3 rounded-xl border border-slate-700/30">
+                  <div 
+                    onClick={() => {
+                      setTransactionForDetail(t);
+                      setIsDetailModalOpen(true);
+                    }} 
+                    className="flex items-center justify-between bg-slate-800/40 p-3 rounded-xl border border-slate-700/30 cursor-pointer hover:bg-slate-800/65 active:scale-[0.99] transition-all duration-200"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="bg-slate-900 p-2 rounded-lg">
                         {getTransactionIcon(t.tipo)}
@@ -579,25 +606,29 @@ const Dashboard = () => {
                         {t.tipo === 'Salida' ? '-' : t.tipo === 'Entrada' ? '+' : ''}{ocultarSaldos ? '••••' : formatCurrency(t.monto)}
                       </p>
                       {userRole === 'ADMIN' && (
-                        <>
+                        <div className="flex items-center gap-1">
                           <button 
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setTransactionToEdit(t);
                               setIsEditModalOpen(true);
                             }}
-                            className="text-slate-500 hover:text-blue-400 p-1 rounded-lg hover:bg-blue-500/10 transition-colors ml-1 flex items-center justify-center"
+                            className="text-slate-500 hover:text-blue-400 p-1.5 rounded-lg hover:bg-blue-500/10 transition-colors flex items-center justify-center"
                             title="Editar movimiento"
                           >
                             <MdEdit size={18} />
                           </button>
                           <button 
-                            onClick={() => handleEliminarTransaccion(t.id, t.concepto, t.monto)}
-                            className="text-slate-500 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10 transition-colors ml-1 flex items-center justify-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEliminarTransaccion(t.id, t.concepto, t.monto);
+                            }}
+                            className="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors flex items-center justify-center"
                             title="Eliminar movimiento"
                           >
                             <MdDelete size={18} />
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -618,6 +649,17 @@ const Dashboard = () => {
         initialData={transactionToEdit}
       />
       <ConfirmModal {...dialogConfig} onClose={closeDialog} />
+      <DetalleMovimientoModal 
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setTransactionForDetail(null);
+        }}
+        movimiento={transactionForDetail}
+        apartados={apartados}
+        usuariosMap={usuariosMap}
+        ocultarSaldos={ocultarSaldos}
+      />
     </div>
   );
 };

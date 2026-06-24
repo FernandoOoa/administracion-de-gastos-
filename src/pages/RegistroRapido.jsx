@@ -21,6 +21,7 @@ const RegistroRapido = () => {
   const [tipo, setTipo] = useState('Entrada');
   const [monto, setMonto] = useState('');
   const [fecha, setFecha] = useState(getTodayString());
+  const [titulo, setTitulo] = useState('');
   const [concepto, setConcepto] = useState('');
   const [apartadoId, setApartadoId] = useState('');
   const [apartadoDestinoId, setApartadoDestinoId] = useState('');
@@ -39,6 +40,7 @@ const RegistroRapido = () => {
     const res = await registrarTransaccion({
       tipo,
       monto,
+      titulo,
       concepto,
       apartadoId,
       apartadoDestinoId: tipo === 'Transferencia' ? apartadoDestinoId : null,
@@ -48,6 +50,7 @@ const RegistroRapido = () => {
     if (res.success) {
       setSuccessMsg('¡Transacción guardada exitosamente!');
       setMonto('');
+      setTitulo('');
       setConcepto('');
       setFecha(getTodayString());
       if (tipo === 'Transferencia') setApartadoDestinoId('');
@@ -55,7 +58,7 @@ const RegistroRapido = () => {
   };
 
   const isFormValid = () => {
-    if (!monto || !concepto || !apartadoId) return false;
+    if (!monto || !titulo || !apartadoId) return false;
     if (tipo === 'Transferencia' && (!apartadoDestinoId || apartadoId === apartadoDestinoId)) return false;
     return true;
   };
@@ -144,16 +147,28 @@ const RegistroRapido = () => {
           />
         </div>
 
-        {/* Concepto */}
+        {/* Título Breve */}
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">Concepto</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Título del Movimiento (Breve)</label>
           <input
             type="text"
             required
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            placeholder="Ej: Pago de Luz, Compra de café"
+            className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          />
+        </div>
+
+        {/* Concepto Desglose Largo */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Concepto (Desglose Largo)</label>
+          <textarea
             value={concepto}
             onChange={(e) => setConcepto(e.target.value)}
-            placeholder="¿De qué trata el movimiento?"
-            className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            placeholder="Detalles adicionales, números de factura, artículos..."
+            rows={3}
+            className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none text-sm"
           />
         </div>
 

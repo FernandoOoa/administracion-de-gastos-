@@ -149,9 +149,12 @@ const DetalleMovimientoModal = ({ isOpen, onClose, movimiento, apartados = [], u
         </button>
 
         {/* Título de la modal */}
-        <h2 className="text-xl font-bold text-slate-200 mb-6 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-slate-200 mb-1">
           <span>Detalle de Movimiento</span>
         </h2>
+        <p className="text-sm text-slate-400 font-medium mb-6 truncate" title={movimiento.titulo || movimiento.concepto}>
+          {movimiento.titulo || movimiento.concepto}
+        </p>
 
         {/* Tarjeta del Monto (Gran tamaño) */}
         <div className="bg-slate-850/80 border border-slate-800 rounded-2xl p-6 text-center mb-6 relative overflow-hidden">
@@ -191,11 +194,14 @@ const DetalleMovimientoModal = ({ isOpen, onClose, movimiento, apartados = [], u
         {/* Contenido / Información */}
         <div className="space-y-5">
           
-          {/* Concepto Entero */}
+          {/* Concepto / Desglose */}
           <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Concepto Completo</h3>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Desglose / Concepto</h3>
             <div className="bg-slate-850 border border-slate-800/60 p-4 rounded-2xl text-slate-200 text-sm leading-relaxed whitespace-pre-wrap break-words">
-              {movimiento.concepto || 'Sin concepto registrado'}
+              {movimiento.titulo 
+                ? (movimiento.concepto || 'Sin desglose adicional')
+                : 'Sin desglose adicional'
+              }
             </div>
           </div>
 

@@ -3,6 +3,7 @@ import { MdClose } from 'react-icons/md';
 import ConfirmModal from './ConfirmModal';
 
 const EditMovimientoModal = ({ isOpen, onClose, onSave, apartados, initialData = null }) => {
+  const [titulo, setTitulo] = useState('');
   const [concepto, setConcepto] = useState('');
   const [monto, setMonto] = useState('');
   const [fecha, setFecha] = useState('');
@@ -30,7 +31,14 @@ const EditMovimientoModal = ({ isOpen, onClose, onSave, apartados, initialData =
 
   useEffect(() => {
     if (isOpen && initialData) {
-      setConcepto(initialData.concepto || '');
+      if (initialData.titulo !== undefined) {
+        setTitulo(initialData.titulo || '');
+        setConcepto(initialData.concepto || '');
+      } else {
+        // Para registros antiguos, cargamos el concepto en el título y dejamos el desglose vacío
+        setTitulo(initialData.concepto || '');
+        setConcepto('');
+      }
       setMonto(initialData.monto || '');
       setApartadoId(initialData.apartado_id || '');
       setApartadoDestinoId(initialData.apartado_destino_id || '');
@@ -53,14 +61,15 @@ const EditMovimientoModal = ({ isOpen, onClose, onSave, apartados, initialData =
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!concepto.trim() || !monto || !fecha || !apartadoId) return;
+    if (!titulo.trim() || !monto || !fecha || !apartadoId) return;
 
     const [year, month, day] = fecha.split('-').map(Number);
     const ahora = new Date();
     const dateObj = new Date(year, month - 1, day, ahora.getHours(), ahora.getMinutes(), ahora.getSeconds());
 
     const updateData = {
-      concepto,
+      titulo: titulo.trim(),
+      concepto: concepto.trim(),
       monto: Number(monto),
       fecha: dateObj,
       apartado_id: apartadoId
@@ -107,15 +116,28 @@ const EditMovimientoModal = ({ isOpen, onClose, onSave, apartados, initialData =
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">
-              Concepto / Descripción
+              Título del Movimiento (Breve)
             </label>
             <input 
               type="text" 
               required
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Título del movimiento"
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">
+              Concepto (Desglose Largo)
+            </label>
+            <textarea 
               value={concepto}
               onChange={(e) => setConcepto(e.target.value)}
-              placeholder="Concepto del movimiento"
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              placeholder="Desglose adicional..."
+              rows={3}
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none text-sm"
             />
           </div>
           

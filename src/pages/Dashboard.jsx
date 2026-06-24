@@ -578,7 +578,7 @@ const Dashboard = () => {
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium text-slate-200 line-clamp-1">{t.concepto}</p>
+                          <p className="text-sm font-medium text-slate-200 line-clamp-1">{t.titulo || t.concepto}</p>
                           {t.tipo === 'Entrada' && t.estado_custodia && (
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${getCustodiaBadgeStyle(t.estado_custodia)}`}>
                               {getCustodiaLabel(t.estado_custodia)}

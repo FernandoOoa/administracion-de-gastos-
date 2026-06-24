@@ -89,7 +89,7 @@ export const useDashboard = () => {
 
         const oldData = transDoc.data();
         const { tipo: oldTipo, monto: oldMonto, apartado_id: oldApartadoId, apartado_destino_id: oldApartadoDestinoId } = oldData;
-        const { concepto: newConcepto, monto: newMonto, fecha: newFecha, apartado_id: newApartadoId, apartado_destino_id: newApartadoDestinoId } = nuevosDatos;
+        const { titulo: newTitulo, concepto: newConcepto, monto: newMonto, fecha: newFecha, apartado_id: newApartadoId, apartado_destino_id: newApartadoDestinoId } = nuevosDatos;
 
         // 1. Identificar todos los IDs de apartados únicos que necesitamos leer
         const uniqueApartadoIds = new Set();
@@ -159,6 +159,7 @@ export const useDashboard = () => {
 
         // 7. Actualizar el documento de la transacción (Escritura/Write)
         const updateData = {
+          titulo: newTitulo,
           concepto: newConcepto,
           monto: newMonto,
           fecha: newFecha,

@@ -11,6 +11,7 @@ export const useRegistro = () => {
   const registrarTransaccion = async ({
     tipo,
     monto,
+    titulo,
     concepto,
     apartadoId,
     apartadoDestinoId,
@@ -34,7 +35,8 @@ export const useRegistro = () => {
       const transaccionData = {
         tipo,
         monto: parsedMonto,
-        concepto,
+        titulo: titulo,
+        concepto: concepto || '',
         apartado_id: apartadoId,
         fecha: fechaTransaccion,
         fecha_registro: new Date(),
@@ -92,7 +94,7 @@ export const useRegistro = () => {
           const notifTesoRef = doc(collection(db, 'notificaciones'));
           transaction.set(notifTesoRef, {
             id_usuario_destino: 'ROLE_TESORERA',
-            mensaje: `El usuario ${currentUser.displayName || 'Gestor'} ha registrado una ${tipo} por $${parsedMonto}.`,
+            mensaje: `El usuario ${currentUser.displayName || 'Gestor'} ha registrado una ${tipo} ("${titulo}") por $${parsedMonto}.`,
             tipo: 'INFO',
             leida: false,
             fecha: new Date()
@@ -101,7 +103,7 @@ export const useRegistro = () => {
           const notifAdminRef = doc(collection(db, 'notificaciones'));
           transaction.set(notifAdminRef, {
             id_usuario_destino: 'ROLE_ADMIN',
-            mensaje: `El usuario ${currentUser.displayName || 'Gestor'} ha registrado una ${tipo} por $${parsedMonto}.`,
+            mensaje: `El usuario ${currentUser.displayName || 'Gestor'} ha registrado una ${tipo} ("${titulo}") por $${parsedMonto}.`,
             tipo: 'INFO',
             leida: false,
             fecha: new Date()
